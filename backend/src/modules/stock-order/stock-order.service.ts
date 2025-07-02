@@ -4,9 +4,11 @@ import { Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
 import { CoreService } from '../../shared/modules/routes/core.service';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
+import { PortfolioService } from '../portfolio/portfolio.service';
 import { CreateStockOrderDto } from './dto/create-stock-order.dto';
 import { UpdateStockOrderDto } from './dto/update-stock-order.dto';
-import { StockOrder } from './entities/stock-order.entity';
+import { StockOrder, StockOrderSide } from './entities/stock-order.entity';
+import { UpdatePortfolioDto } from '../portfolio/dto/update-portfolio.dto';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -14,17 +16,69 @@ export class StockOrderService extends CoreService<StockOrder> {
   constructor(
     @InjectRepository(StockOrder)
     private readonly stockOrderRepository: Repository<StockOrder>,
+    private readonly portfolioService: PortfolioService,
   ) {
     super(stockOrderRepository);
   }
 
   async create(createStockOrderDto: CreateStockOrderDto, req: AuthRequest) {
-    const stockOrder = await this.createCoreService(
-      [createStockOrderDto],
-      req.user.userId,
-    );
+    console.log(createStockOrderDto);
+    const { stockCode, side, volume, price } = createStockOrderDto;
+    if (volume % 100 !== 0) {
+      throw new BadRequestException('Volume must be a multiple of 100');
+    }
 
-    return stockOrder[0];
+    // check out of money
+    if (side === StockOrderSide.BUY.toString()) {
+      const portfolio =
+        await this.portfolioService.findOneByStockCode(stockCode);
+      let updatedPortfolioDto: UpdatePortfolioDto;
+      if (!portfolio) {
+        updatedPortfolioDto = {
+          stockCode,
+          volume,
+          price,
+        };
+      } else {
+        updatedPortfolioDto = {
+          stockCode,
+          volume: portfolio.volume + volume,
+          price: Math.round(
+            (portfolio.price * portfolio.volume + price * volume) /
+              (portfolio.volume + volume),
+          ),
+        };
+      }
+      const newPortfolio = await this.portfolioService.updateByStockCode(
+        updatedPortfolioDto,
+        req,
+      );
+
+      return newPortfolio;
+    } else if (side === StockOrderSide.SELL.toString()) {
+      const portfolio =
+        await this.portfolioService.findOneByStockCode(stockCode);
+      if (!portfolio) {
+        throw new BadRequestException('Stock code not found');
+      }
+
+      if (portfolio.volume < volume) {
+        throw new BadRequestException('Insufficient volume');
+      }
+
+      const updatedPortfolioDto: UpdatePortfolioDto = {
+        stockCode,
+        volume: portfolio.volume - volume,
+        price: portfolio.price,
+      };
+
+      const updatedPortfolio = await this.portfolioService.updateByStockCode(
+        updatedPortfolioDto,
+        req,
+      );
+
+      return updatedPortfolio;
+    }
   }
 
   // async createOrUpdateConfig(

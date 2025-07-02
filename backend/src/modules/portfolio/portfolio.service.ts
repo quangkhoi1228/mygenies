@@ -71,8 +71,13 @@ export class PortfolioService extends CoreService<Portfolio> {
           updatePortfolioDto,
           req.user.userId,
         );
+        return await this.findOneByStockCode(updatePortfolioDto.stockCode);
       } else {
-        await this.createCoreService([updatePortfolioDto], req.user.userId);
+        const newPortfolio = await this.createCoreService(
+          [updatePortfolioDto],
+          req.user.userId,
+        );
+        return newPortfolio[0];
       }
       return true;
     } catch (error) {
