@@ -11,7 +11,7 @@ export class PortfolioCronService {
 
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
-    this.dailyCron();
+    // this.dailyCron();
   }
   // run everyday at 8:45 am
   // @Cron('0 45 8 * * *')
