@@ -7,6 +7,8 @@ import { AuthRequest } from '../auth/interface/auth-request.interface';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { Portfolio } from './entities/portfolio.entity';
+import { UserService } from '../user/user/user.service';
+import { SlackService } from '../third-party/slack/slack.service';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -14,6 +16,8 @@ export class PortfolioService extends CoreService<Portfolio> {
   constructor(
     @InjectRepository(Portfolio)
     private readonly portfolioRepository: Repository<Portfolio>,
+    private readonly userService: UserService,
+    private readonly slackService: SlackService,
   ) {
     super(portfolioRepository);
   }
@@ -110,6 +114,27 @@ export class PortfolioService extends CoreService<Portfolio> {
       return await this.portfolioRepository.remove(removeEntity);
     } else {
       throw new BadRequestException('Portfolio not existed');
+    }
+  }
+
+  async processMonthlyCron() {
+    const users = await this.userService.getRepository().find({
+      ...this.userService.createDefaultFindOption(),
+    });
+
+    for (const user of users) {
+      const dataDto = this.userService.convertDataToResponse(user);
+
+      const portfolios = await this.portfolioRepository.find({
+        where: {
+          createdUser: dataDto.id,
+        },
+        order: {
+          stockCode: 'desc',
+        },
+      });
+
+      await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
     }
   }
 }

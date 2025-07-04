@@ -4,7 +4,7 @@ import { AuthRequest } from '../auth/interface/auth-request.interface';
 import { CreateStockOrderDto } from './dto/create-stock-order.dto';
 import { StockOrderService } from './stock-order.service';
 
-@Controller('stock-order')
+@Controller('stockOrder')
 export class StockOrderController {
   constructor(private readonly stockOrderService: StockOrderService) {}
 

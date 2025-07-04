@@ -100,6 +100,10 @@ export const UserInfoDataConfig = [
     key: 'onboardInitEnd',
     type: MetaType.boolean,
   },
+  {
+    key: 'slackWebhookUrl',
+    type: MetaType.string,
+  },
 ] as const;
 
 type ConfigItem = (typeof UserInfoDataConfig)[number];

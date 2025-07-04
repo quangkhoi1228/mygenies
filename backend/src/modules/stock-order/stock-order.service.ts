@@ -9,6 +9,8 @@ import { CreateStockOrderDto } from './dto/create-stock-order.dto';
 import { UpdateStockOrderDto } from './dto/update-stock-order.dto';
 import { StockOrder, StockOrderSide } from './entities/stock-order.entity';
 import { UpdatePortfolioDto } from '../portfolio/dto/update-portfolio.dto';
+import { SlackService } from '../third-party/slack/slack.service';
+import { UserService } from '../user/user/user.service';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -17,6 +19,8 @@ export class StockOrderService extends CoreService<StockOrder> {
     @InjectRepository(StockOrder)
     private readonly stockOrderRepository: Repository<StockOrder>,
     private readonly portfolioService: PortfolioService,
+    private readonly userService: UserService,
+    private readonly slackService: SlackService,
   ) {
     super(stockOrderRepository);
   }
@@ -27,6 +31,15 @@ export class StockOrderService extends CoreService<StockOrder> {
     if (volume % 100 !== 0) {
       throw new BadRequestException('Volume must be a multiple of 100');
     }
+
+    const user = await this.userService.currentUser(req);
+
+    const order = await this.createCoreService(
+      [createStockOrderDto],
+      req.user.userId,
+    );
+
+    await this.slackService.sendStockSignalMessage(order[0], user);
 
     // check out of money
     if (side === StockOrderSide.BUY.toString()) {
