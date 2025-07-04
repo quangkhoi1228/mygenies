@@ -5,9 +5,13 @@ import {
   StockOrder,
   StockOrderSide,
 } from 'src/modules/stock-order/entities/stock-order.entity';
-import { UserDataDto } from 'src/modules/user/user/dto/create-user.dto';
+import {
+  SlackWebhookUrlType,
+  UserDataDto,
+} from 'src/modules/user/user/dto/create-user.dto';
 import { formatDateToDDMMYYYY } from 'src/utils/date.util';
 import { numberWithCommas } from 'src/utils/number.utils';
+import { isNotEmpty } from 'src/utils/object.util';
 
 const NAV = 2000000;
 @Injectable()
@@ -19,7 +23,7 @@ export class SlackService {
   ) {
     const { slackWebhookUrl } = user.userInfo;
 
-    if (!slackWebhookUrl) {
+    if (!isNotEmpty(slackWebhookUrl)) {
       console.warn('Slack webhook URL not set');
       return;
     }
@@ -125,15 +129,19 @@ export class SlackService {
     );
   }
 
-  async sendMessage(text: string, webhook: string) {
-    try {
-      const result = await axios.post(webhook, {
-        text,
-      });
+  async sendMessage(text: string, webhooks: SlackWebhookUrlType[]) {
+    for (const webhook of webhooks) {
+      if (webhook.url) {
+        try {
+          const result = await axios.post(webhook.url, {
+            text,
+          });
 
-      return result;
-    } catch (error) {
-      console.log(error);
+          return result;
+        } catch (error) {
+          console.log(error);
+        }
+      }
     }
   }
 }

@@ -13,6 +13,11 @@ export enum OnboardKeyEnum {
   LANGUAGE_LEARNING_FREQUENCY = 'languageLearningFrequency',
 }
 
+export class SlackWebhookUrlType {
+  name: string;
+  url: string;
+}
+
 export class UserDataDto {
   id: number;
   clerkId: string;
@@ -102,7 +107,7 @@ export const UserInfoDataConfig = [
   },
   {
     key: 'slackWebhookUrl',
-    type: MetaType.string,
+    type: MetaType.array,
   },
 ] as const;
 
