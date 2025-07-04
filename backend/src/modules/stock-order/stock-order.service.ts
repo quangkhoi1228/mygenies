@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
@@ -18,7 +23,10 @@ export class StockOrderService extends CoreService<StockOrder> {
   constructor(
     @InjectRepository(StockOrder)
     private readonly stockOrderRepository: Repository<StockOrder>,
+
+    @Inject(forwardRef(() => PortfolioService))
     private readonly portfolioService: PortfolioService,
+
     private readonly userService: UserService,
     private readonly slackService: SlackService,
   ) {
@@ -39,7 +47,7 @@ export class StockOrderService extends CoreService<StockOrder> {
       req.user.userId,
     );
 
-    await this.slackService.sendStockSignalMessage(order[0], user);
+    let toCheckPortfolio = null;
 
     // check out of money
     if (side === StockOrderSide.BUY.toString()) {
@@ -67,7 +75,7 @@ export class StockOrderService extends CoreService<StockOrder> {
         req,
       );
 
-      return newPortfolio;
+      toCheckPortfolio = newPortfolio;
     } else if (side === StockOrderSide.SELL.toString()) {
       const portfolio =
         await this.portfolioService.findOneByStockCode(stockCode);
@@ -85,13 +93,19 @@ export class StockOrderService extends CoreService<StockOrder> {
         price: portfolio.price,
       };
 
-      const updatedPortfolio = await this.portfolioService.updateByStockCode(
+      toCheckPortfolio = await this.portfolioService.updateByStockCode(
         updatedPortfolioDto,
         req,
       );
-
-      return updatedPortfolio;
     }
+
+    await this.slackService.sendStockSignalMessage(
+      order[0],
+      toCheckPortfolio,
+      user,
+    );
+
+    return toCheckPortfolio;
   }
 
   // async createOrUpdateConfig(

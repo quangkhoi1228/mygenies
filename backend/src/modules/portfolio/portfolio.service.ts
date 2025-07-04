@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { And, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
 import { CoreService } from '../../shared/modules/routes/core.service';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
@@ -9,6 +14,8 @@ import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { Portfolio } from './entities/portfolio.entity';
 import { UserService } from '../user/user/user.service';
 import { SlackService } from '../third-party/slack/slack.service';
+import { StockOrderService } from '../stock-order/stock-order.service';
+import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -16,6 +23,10 @@ export class PortfolioService extends CoreService<Portfolio> {
   constructor(
     @InjectRepository(Portfolio)
     private readonly portfolioRepository: Repository<Portfolio>,
+
+    @Inject(forwardRef(() => StockOrderService))
+    private readonly stockOrderService: StockOrderService,
+
     private readonly userService: UserService,
     private readonly slackService: SlackService,
   ) {
@@ -83,7 +94,6 @@ export class PortfolioService extends CoreService<Portfolio> {
         );
         return newPortfolio[0];
       }
-      return true;
     } catch (error) {
       throw new BadRequestException(error);
     }
@@ -135,6 +145,26 @@ export class PortfolioService extends CoreService<Portfolio> {
       });
 
       await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
+
+      const now = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+
+      const orders = await this.stockOrderService.getRepository().find({
+        where: {
+          createdUser: dataDto.id,
+          side: StockOrderSide.SELL,
+          createdAt: And(MoreThan(start), LessThanOrEqual(now)),
+        },
+        order: {
+          stockCode: 'desc',
+        },
+      });
+      await this.slackService.sendSellProfitSignalMessage(
+        portfolios,
+        orders,
+        dataDto,
+      );
     }
   }
 }

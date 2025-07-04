@@ -11,15 +11,17 @@ export class PortfolioCronService {
 
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
-    // this.dailyCron();
+    // this.weeklyCron();
   }
   // run everyday at 8:45 am
   // @Cron('0 45 8 * * *')
   @Cron(CronExpression.EVERY_WEEK)
-  async dailyCron() {
+  async weeklyCron() {
     /**
      * Send email link to attend and link to create annual leave request
      */
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
+
     console.log('------> Cron portfolio run <------');
     const check = new Date();
     console.log('Start', `- ${check} -> ${check.getTime()}`);
