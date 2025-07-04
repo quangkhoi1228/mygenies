@@ -24,7 +24,7 @@ export class SlackService {
       return;
     }
 
-    const navPercent = (stockOrder.price * stockOrder.volume) / NAV;
+    const navPercent = ((stockOrder.price * stockOrder.volume) / NAV) * 100;
     const sideVi =
       stockOrder.side === StockOrderSide.BUY
         ? 'MUA'
@@ -59,7 +59,7 @@ export class SlackService {
     const data = portfolios
       .filter((item) => item.volume > 0)
       .reduce((a, v) => {
-        const navPercent = (v.price * v.volume) / NAV;
+        const navPercent = ((v.price * v.volume) / NAV) * 100;
 
         const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(v.volume)} - ${numberWithCommas(navPercent)}%\n`;
 
@@ -105,7 +105,7 @@ export class SlackService {
           }, 0) / sellVolume;
 
         const profit = (sellPrice - v.price) * sellVolume;
-        const profitPercent = profit / NAV;
+        const profitPercent = (profit / NAV) * 100;
 
         const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(sellPrice)} - ${numberWithCommas(profit)} - ${numberWithCommas(profitPercent)}%\n`;
 
