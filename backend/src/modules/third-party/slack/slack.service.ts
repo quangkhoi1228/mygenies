@@ -107,7 +107,7 @@ export class SlackService {
         const profit = (sellPrice - v.price) * sellVolume;
         const profitPercent = (profit / NAV) * 100;
 
-        const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(sellPrice)} - ${numberWithCommas(profit)} - ${numberWithCommas(profitPercent)}%\n`;
+        const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(sellPrice)} - ${numberWithCommas(sellVolume)} - ${numberWithCommas(profit)} - ${numberWithCommas(profitPercent)}%\n`;
 
         a += `${str}\n`;
       }
