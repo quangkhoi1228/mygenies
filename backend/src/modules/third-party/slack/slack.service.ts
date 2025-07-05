@@ -44,12 +44,13 @@ export class SlackService {
           ? 'Hết'
           : 'Một phần';
 
-    const text =
-      `_*${sideVi}:*_ ${stockOrder.stockCode}\n` +
+    const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${numberWithCommas(stockOrder.volume)} — Giá: ${numberWithCommas(stockOrder.price)} - %NAV: ${numberWithCommas(navPercent)}% - ${note}`;
+    const detail =
+      `*${sideVi}:* ${stockOrder.stockCode}\n` +
       `*KL:* ${numberWithCommas(stockOrder.volume)} — *Giá:* ${numberWithCommas(stockOrder.price)}\n` +
       `*%NAV:* ${numberWithCommas(navPercent)}% - _${note}_`;
 
-    return await this.sendMessage(text, slackWebhookUrl);
+    return await this.sendMessage(previewText, detail, slackWebhookUrl);
   }
 
   async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
@@ -73,6 +74,7 @@ export class SlackService {
       }, ``);
 
     return await this.sendMessage(
+      `Portfolio ${formatDateToDDMMYYYY(new Date())}`,
       `Portfolio ${formatDateToDDMMYYYY(new Date())}:\n\n` +
         `Mã - Giá - KL - %NAV\n` +
         '```' +
@@ -120,7 +122,8 @@ export class SlackService {
     }, ``);
 
     return await this.sendMessage(
-      `Sell profit ${formatDateToDDMMYYYY(new Date())}:\n\n` +
+      `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}`,
+      `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}:\n\n` +
         `Mã - Giá vốn - Giá bán - KL - Lãi - Lãi/NAV\n` +
         '```' +
         `${data}` +
@@ -129,13 +132,33 @@ export class SlackService {
     );
   }
 
-  async sendMessage(text: string, webhooks: SlackWebhookUrlType[]) {
+  async sendMessage(
+    previewText: string,
+    detail: string,
+    webhooks: SlackWebhookUrlType[],
+  ) {
     for (const webhook of webhooks) {
       if (webhook.url) {
         try {
-          const result = await axios.post(webhook.url, {
-            text,
-          });
+          // const result = await axios.post(webhook.url, {
+          //   text,
+          // });
+
+          const result = await axios.post(
+            webhook.url,
+            JSON.stringify({
+              text: previewText,
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: detail,
+                  },
+                },
+              ],
+            }),
+          );
 
           return result;
         } catch (error) {
