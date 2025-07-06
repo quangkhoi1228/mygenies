@@ -136,7 +136,7 @@ export class CoreService<Entity> {
   ): Promise<FindResponseDto<Entity>> {
     const findParams = findRequestDto.getFindParam(customOption);
 
-    // console.log(findParams);
+    console.log(findParams);
 
     // const totalRecord = await this.repository.count(findParams);
 

@@ -34,7 +34,6 @@ export class StockOrderService extends CoreService<StockOrder> {
   }
 
   async create(createStockOrderDto: CreateStockOrderDto, req: AuthRequest) {
-    console.log(createStockOrderDto);
     const { stockCode, side, volume, price } = createStockOrderDto;
     if (volume % 100 !== 0) {
       throw new BadRequestException('Volume must be a multiple of 100');
@@ -53,8 +52,10 @@ export class StockOrderService extends CoreService<StockOrder> {
 
     // check out of money
     if (side === StockOrderSide.BUY.toString()) {
-      const portfolio =
-        await this.portfolioService.findOneByStockCode(stockCode);
+      const portfolio = await this.portfolioService.findOneByStockCode(
+        stockCode,
+        req,
+      );
       let updatedPortfolioDto: UpdatePortfolioDto;
       if (!portfolio) {
         updatedPortfolioDto = {
@@ -79,8 +80,10 @@ export class StockOrderService extends CoreService<StockOrder> {
 
       toCheckPortfolio = newPortfolio;
     } else if (side === StockOrderSide.SELL.toString()) {
-      const portfolio =
-        await this.portfolioService.findOneByStockCode(stockCode);
+      const portfolio = await this.portfolioService.findOneByStockCode(
+        stockCode,
+        req,
+      );
       if (!portfolio) {
         throw new BadRequestException('Stock code not found');
       }
@@ -123,7 +126,11 @@ export class StockOrderService extends CoreService<StockOrder> {
   async findAll(req: AuthRequest) {
     const findRequestDto = new FindRequestDto(req);
 
-    const data = await this.findAllCoreServiceByFindRequestDto(findRequestDto);
+    const data = await this.findAllCoreServiceByFindRequestDto(findRequestDto, {
+      where: {
+        createdUser: req.user.userId,
+      },
+    });
 
     return data;
   }

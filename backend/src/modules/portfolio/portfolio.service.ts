@@ -59,7 +59,11 @@ export class PortfolioService extends CoreService<Portfolio> {
   async findAll(req: AuthRequest) {
     const findRequestDto = new FindRequestDto(req);
 
-    const data = await this.findAllCoreServiceByFindRequestDto(findRequestDto);
+    const data = await this.findAllCoreServiceByFindRequestDto(findRequestDto, {
+      where: {
+        createdUser: req.user.userId,
+      },
+    });
 
     return data;
   }
@@ -68,8 +72,11 @@ export class PortfolioService extends CoreService<Portfolio> {
     return await this.portfolioRepository.findOneBy({ id });
   }
 
-  async findOneByStockCode(stockCode: string) {
-    return await this.portfolioRepository.findOneBy({ stockCode });
+  async findOneByStockCode(stockCode: string, req: AuthRequest) {
+    return await this.portfolioRepository.findOneBy({
+      stockCode,
+      createdUser: req.user.userId,
+    });
   }
 
   async updateByStockCode(
@@ -79,6 +86,7 @@ export class PortfolioService extends CoreService<Portfolio> {
     try {
       const existed = await this.findOneByStockCode(
         updatePortfolioDto.stockCode,
+        req,
       );
       if (existed) {
         await this.updateCoreService(
@@ -90,11 +98,16 @@ export class PortfolioService extends CoreService<Portfolio> {
         await this.createCoreService([updatePortfolioDto], req.user.userId);
       }
 
+      const currentPortfolio = await this.findOneByStockCode(
+        updatePortfolioDto.stockCode,
+        req,
+      );
+
       if (updatePortfolioDto.volume <= 0) {
         await this.remove(existed.id);
       }
 
-      return true;
+      return currentPortfolio;
     } catch (error) {
       throw new BadRequestException(error);
     }

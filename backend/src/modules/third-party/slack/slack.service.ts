@@ -10,10 +10,13 @@ import {
   UserDataDto,
 } from 'src/modules/user/user/dto/create-user.dto';
 import { formatDateToDDMMYYYY } from 'src/utils/date.util';
-import { numberWithCommas } from 'src/utils/number.utils';
+import {
+  formatPrice,
+  formatVolume,
+  getPortfolioPercentage,
+} from 'src/utils/financeUtils';
 import { isNotEmpty } from 'src/utils/object.util';
 
-const NAV = 2000000;
 @Injectable()
 export class SlackService {
   async sendStockSignalMessage(
@@ -21,40 +24,48 @@ export class SlackService {
     portfolio: Portfolio,
     user: UserDataDto,
   ) {
-    const { slackWebhookUrl } = user.userInfo;
+    try {
+      const { slackWebhookUrl, nav } = user.userInfo;
 
-    if (!isNotEmpty(slackWebhookUrl)) {
-      console.warn('Slack webhook URL not set');
-      return;
+      console.log(stockOrder, portfolio, user);
+      const processPrice = stockOrder.price * 1000;
+
+      if (!isNotEmpty(slackWebhookUrl)) {
+        console.warn('Slack webhook URL not set');
+        return;
+      }
+
+      const navPercent = getPortfolioPercentage(
+        processPrice,
+        stockOrder.volume,
+        nav,
+      );
+      const sideVi = stockOrder.side === StockOrderSide.BUY ? 'MUA' : 'BÁN';
+      const note =
+        stockOrder.side === StockOrderSide.BUY
+          ? portfolio.volume === stockOrder.volume
+            ? 'Mới'
+            : 'Thêm'
+          : portfolio.volume === 0
+            ? 'Hết'
+            : 'Giảm';
+
+      const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${formatVolume(stockOrder.volume)} - Giá: ${formatPrice(processPrice)} - %NAV: ${navPercent} - ${note}`;
+      const detail =
+        `*${sideVi}:* ${stockOrder.stockCode}\n` +
+        `*KL:* ${formatVolume(stockOrder.volume)} — *Giá:* ${formatPrice(
+          processPrice,
+        )}\n` +
+        `*%NAV:* ${navPercent} - _${note}_`;
+
+      return await this.sendMessage(previewText, detail, slackWebhookUrl);
+    } catch (error) {
+      console.error(error);
     }
-
-    const navPercent = ((stockOrder.price * stockOrder.volume) / NAV) * 100;
-    const sideVi =
-      stockOrder.side === StockOrderSide.BUY
-        ? 'MUA'
-        : stockOrder.side === StockOrderSide.SELL
-          ? 'BÁN'
-          : 'BÁN';
-    const note =
-      stockOrder.side === StockOrderSide.BUY
-        ? portfolio.volume === stockOrder.volume
-          ? 'Mới'
-          : 'Thêm'
-        : portfolio.volume === 0
-          ? 'Hết'
-          : 'Một phần';
-
-    const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${numberWithCommas(stockOrder.volume)} - Giá: ${numberWithCommas(stockOrder.price)} - %NAV: ${numberWithCommas(navPercent)}% - ${note}`;
-    const detail =
-      `*${sideVi}:* ${stockOrder.stockCode}\n` +
-      `*KL:* ${numberWithCommas(stockOrder.volume)} — *Giá:* ${numberWithCommas(stockOrder.price)}\n` +
-      `*%NAV:* ${numberWithCommas(navPercent)}% - _${note}_`;
-
-    return await this.sendMessage(previewText, detail, slackWebhookUrl);
   }
 
   async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
-    const { slackWebhookUrl } = user.userInfo;
+    const { slackWebhookUrl, nav } = user.userInfo;
 
     if (!slackWebhookUrl) {
       console.warn('Slack webhook URL not set');
@@ -64,9 +75,13 @@ export class SlackService {
     const data = portfolios
       .filter((item) => item.volume > 0)
       .reduce((a, v) => {
-        const navPercent = ((v.price * v.volume) / NAV) * 100;
+        const navPercent = getPortfolioPercentage(
+          v.price * 1000,
+          v.volume,
+          nav,
+        );
 
-        const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(v.volume)} - ${numberWithCommas(navPercent)}%\n`;
+        const str = `${v.stockCode} - ${formatPrice(v.price * 1000)} - ${formatVolume(v.volume)} - ${navPercent}\n`;
 
         a += `${str}\n`;
 
@@ -89,7 +104,7 @@ export class SlackService {
     orders: StockOrder[],
     user: UserDataDto,
   ) {
-    const { slackWebhookUrl } = user.userInfo;
+    const { slackWebhookUrl, nav } = user.userInfo;
 
     if (!slackWebhookUrl) {
       console.warn('Slack webhook URL not set');
@@ -111,9 +126,9 @@ export class SlackService {
           }, 0) / sellVolume;
 
         const profit = (sellPrice - v.price) * sellVolume;
-        const profitPercent = (profit / NAV) * 100;
+        const profitPercent = (profit / nav) * 100;
 
-        const str = `${v.stockCode} - ${numberWithCommas(v.price)} - ${numberWithCommas(sellPrice)} - ${numberWithCommas(sellVolume)} - ${numberWithCommas(profit)} - ${numberWithCommas(profitPercent)}%\n`;
+        const str = `${v.stockCode} - ${formatPrice(v.price * 1000)} - ${formatPrice(sellPrice * 1000)} - ${formatVolume(sellVolume)} - ${formatPrice(profit)} - ${profitPercent}\n`;
 
         a += `${str}\n`;
       }
