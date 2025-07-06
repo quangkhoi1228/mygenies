@@ -114,6 +114,12 @@ export const UserInfoDataConfig = [
     key: 'nav',
     type: MetaType.number,
   },
+
+  // notification slack
+  {
+    key: 'slackWebhookUrl',
+    type: MetaType.array,
+  },
 ] as const;
 
 type ConfigItem = (typeof UserInfoDataConfig)[number];

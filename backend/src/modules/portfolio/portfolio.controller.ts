@@ -1,10 +1,8 @@
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
-import { Public } from 'src/decorators/public.decorator';
 import { PaginationDto } from 'src/shared/dto/find-request.dto';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
 import { PortfolioService } from './portfolio.service';
 
-@Public()
 @Controller('portfolio')
 export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}

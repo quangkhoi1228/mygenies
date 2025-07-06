@@ -40,6 +40,8 @@ export class StockOrderService extends CoreService<StockOrder> {
       throw new BadRequestException('Volume must be a multiple of 100');
     }
 
+    const processPrice = price * 1000;
+
     const user = await this.userService.currentUser(req);
 
     const order = await this.createCoreService(
@@ -58,14 +60,14 @@ export class StockOrderService extends CoreService<StockOrder> {
         updatedPortfolioDto = {
           stockCode,
           volume,
-          price,
+          price: processPrice,
         };
       } else {
         updatedPortfolioDto = {
           stockCode,
           volume: portfolio.volume + volume,
           price: Math.round(
-            (portfolio.price * portfolio.volume + price * volume) /
+            (portfolio.price * portfolio.volume + processPrice * volume) /
               (portfolio.volume + volume),
           ),
         };
@@ -99,13 +101,9 @@ export class StockOrderService extends CoreService<StockOrder> {
       );
     }
 
-    await this.slackService.sendStockSignalMessage(
-      order[0],
-      toCheckPortfolio,
-      user,
-    );
+    this.slackService.sendStockSignalMessage(order[0], toCheckPortfolio, user);
 
-    return toCheckPortfolio;
+    return true;
   }
 
   // async createOrUpdateConfig(

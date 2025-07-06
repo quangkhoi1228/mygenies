@@ -44,7 +44,7 @@ export class SlackService {
           ? 'Hết'
           : 'Một phần';
 
-    const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${numberWithCommas(stockOrder.volume)} — Giá: ${numberWithCommas(stockOrder.price)} - %NAV: ${numberWithCommas(navPercent)}% - ${note}`;
+    const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${numberWithCommas(stockOrder.volume)} - Giá: ${numberWithCommas(stockOrder.price)} - %NAV: ${numberWithCommas(navPercent)}% - ${note}`;
     const detail =
       `*${sideVi}:* ${stockOrder.stockCode}\n` +
       `*KL:* ${numberWithCommas(stockOrder.volume)} — *Giá:* ${numberWithCommas(stockOrder.price)}\n` +
