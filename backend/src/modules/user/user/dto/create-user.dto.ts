@@ -109,6 +109,11 @@ export const UserInfoDataConfig = [
     key: 'slackWebhookUrl',
     type: MetaType.array,
   },
+  // trading account
+  {
+    key: 'nav',
+    type: MetaType.number,
+  },
 ] as const;
 
 type ConfigItem = (typeof UserInfoDataConfig)[number];
