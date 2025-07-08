@@ -42,4 +42,9 @@ export class UserController {
   ) {
     return this.userService.updateUser(updateUserRawDto, req);
   }
+
+  @Get('checkUserIsWhitelist')
+  checkUserIsWhitelist(@Req() req: AuthRequest) {
+    return this.userService.checkUserIsWhitelist(req);
+  }
 }

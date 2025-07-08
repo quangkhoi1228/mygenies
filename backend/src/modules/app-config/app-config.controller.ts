@@ -16,7 +16,6 @@ import { AuthRequest } from '../auth/interface/auth-request.interface';
 import { Public } from 'src/decorators/public.decorator';
 import { PaginationDto } from 'src/shared/dto/find-request.dto';
 
-@Public()
 @Controller('appConfig')
 export class AppConfigController {
   constructor(private readonly appConfigService: AppConfigService) {}

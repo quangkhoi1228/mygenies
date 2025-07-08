@@ -7,6 +7,8 @@ export enum AppConfigName {
 
   ADMIN_UPLOAD_FILE_SIZE = 'ADMIN_UPLOAD_FILE_SIZE',
   CUSTOMER_UPLOAD_FILE_SIZE = 'CUSTOMER_UPLOAD_FILE_SIZE',
+
+  WHITELIST_USER = 'WHITELIST_USER',
 }
 
 export class OnboardProcessConfig {

@@ -18,6 +18,8 @@ import { AuthRequest } from '../../auth/interface/auth-request.interface';
 import { CreateUserInfoBaseDto } from '../user-info/dto/create-user-info.dto';
 import { MetaType } from '../../../shared/interfaces/objectMeta.interface';
 import { UpdateUserDto, UpdateUserRawDto } from './dto/update-user.dto';
+import { AppConfigService } from 'src/modules/app-config/app-config.service';
+import { AppConfigName } from 'src/modules/app-config/dto/create-app-config.dto';
 
 @Injectable()
 export class UserService extends CoreService<User> {
@@ -26,6 +28,7 @@ export class UserService extends CoreService<User> {
     private readonly userRepository: Repository<User>,
     private readonly userInfoService: UserInfoService,
     private readonly clerkService: ClerkService,
+    private readonly appConfigService: AppConfigService,
 
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
@@ -214,5 +217,38 @@ export class UserService extends CoreService<User> {
         userInfo: true,
       },
     };
+  }
+
+  async checkUserIsWhitelist(req: AuthRequest) {
+    const whitelistUser = await this.appConfigService.findOneByName(
+      AppConfigName.WHITELIST_USER,
+    );
+
+    if (!whitelistUser) {
+      return false;
+    }
+
+    const userInfo = await this.userInfoService.findAllByUser(
+      req.user.userId,
+      req.user.clerkUserId,
+    );
+
+    const userInfoEmail = userInfo.find((item) => item.key === 'email');
+
+    if (userInfoEmail) {
+      const whitelistUserList = JSON.parse(whitelistUser.value);
+
+      return whitelistUserList.includes(userInfoEmail.value);
+    } else {
+      return false;
+    }
+
+    // if (whitelistUser) {
+    //   const whitelistUserList = JSON.parse(whitelistUser.value);
+
+    //   return whitelistUserList.includes(req.user.email);
+    // } else {
+    //   return false;
+    // }
   }
 }
