@@ -55,7 +55,7 @@ export class SlackService {
 
       const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${formatVolume(stockOrder.volume)} - Giá: ${formatPrice(processPrice)} - %NAV: ${navPercent} - ${note}`;
       const detail =
-        `*${sideVi}:* ${stockOrder.stockCode}\n` +
+        `_*${sideVi}:*_ ${stockOrder.stockCode}\n` +
         `*KL:* ${formatVolume(stockOrder.volume)} — *Giá:* ${formatPrice(
           processPrice,
         )}\n` +
