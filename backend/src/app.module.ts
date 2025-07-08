@@ -40,6 +40,7 @@ import { UserActiveAiModule } from './modules/user-ai/user-active-ai/user-active
 import { StockOrderModule } from './modules/stock-order/stock-order.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { SlackModule } from './modules/third-party/slack/slack.module';
+import { ScreenshotModule } from './modules/screenshot/screenshot.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { SlackModule } from './modules/third-party/slack/slack.module';
     StockOrderModule,
     PortfolioModule,
     SlackModule,
+    ScreenshotModule,
   ],
   controllers: [],
   providers: [],

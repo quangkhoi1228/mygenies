@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, HttpException, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { Portfolio } from 'src/modules/portfolio/entities/portfolio.entity';
 import {
@@ -16,9 +16,12 @@ import {
   getPortfolioPercentage,
 } from 'src/utils/financeUtils';
 import { isNotEmpty } from 'src/utils/object.util';
+import { ConvexService } from '../convex/convex.service';
+import { PortfolioReportType } from './types/portfolio-report.type';
 
 @Injectable()
 export class SlackService {
+  constructor(private readonly convexService: ConvexService) {}
   async sendStockSignalMessage(
     stockOrder: StockOrder,
     portfolio: Portfolio,
@@ -58,45 +61,83 @@ export class SlackService {
         )}\n` +
         `*%NAV:* ${navPercent} - _${note}_`;
 
-      return await this.sendMessage(previewText, detail, slackWebhookUrl);
+      const data = {
+        text: previewText,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: detail,
+            },
+          },
+        ],
+      };
+
+      return await this.sendMessage(data, slackWebhookUrl);
     } catch (error) {
       console.error(error);
     }
   }
 
   async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
-    const { slackWebhookUrl, nav } = user.userInfo;
+    try {
+      console.log('sendPortfolioSignalMessage', portfolios);
+      const { slackWebhookUrl, nav } = user.userInfo;
 
-    if (!slackWebhookUrl) {
-      console.warn('Slack webhook URL not set');
-      return;
+      if (!slackWebhookUrl) {
+        console.warn('Slack webhook URL not set');
+        return;
+      }
+
+      const portfolioReportData: PortfolioReportType[] = portfolios.reduce(
+        (pre, current) => {
+          const reportPortfolioItem: PortfolioReportType = {
+            ...current,
+            percent: '',
+          };
+          const navPercent = getPortfolioPercentage(
+            reportPortfolioItem.price,
+            reportPortfolioItem.volume,
+            nav,
+          );
+
+          reportPortfolioItem.percent = navPercent;
+
+          pre.push(reportPortfolioItem);
+
+          return pre;
+        },
+        [],
+      );
+
+      console.log(portfolioReportData);
+      if (portfolioReportData.length > 0) {
+      }
+      const response = await axios.post(
+        `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
+        portfolioReportData,
+      );
+
+      console.log(response.data);
+
+      return await this.sendMessage(
+        {
+          text: `Báo cáo portfolio ${formatDateToDDMMYYYY(new Date())}`,
+          blocks: [
+            {
+              type: 'image',
+              image_url: response.data.url,
+              alt_text: 'Mô tả ảnh',
+            },
+          ],
+        },
+        slackWebhookUrl,
+      );
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
-
-    const data = portfolios
-      .filter((item) => item.volume > 0)
-      .reduce((a, v) => {
-        const navPercent = getPortfolioPercentage(
-          v.price * 1000,
-          v.volume,
-          nav,
-        );
-
-        const str = `${v.stockCode} - ${formatPrice(v.price * 1000)} - ${formatVolume(v.volume)} - ${navPercent}\n`;
-
-        a += `${str}\n`;
-
-        return a;
-      }, ``);
-
-    return await this.sendMessage(
-      `Portfolio ${formatDateToDDMMYYYY(new Date())}`,
-      `Portfolio ${formatDateToDDMMYYYY(new Date())}:\n\n` +
-        `Mã - Giá - KL - %NAV\n` +
-        '```' +
-        `${data}` +
-        '```',
-      slackWebhookUrl,
-    );
   }
 
   async sendSellProfitSignalMessage(
@@ -111,7 +152,7 @@ export class SlackService {
       return;
     }
 
-    const data = portfolios.reduce((a, v) => {
+    const profitReportData = portfolios.reduce((a, v) => {
       const sellOrders = orders.filter(
         (item) => item.stockCode === v.stockCode,
       );
@@ -136,44 +177,37 @@ export class SlackService {
       return a;
     }, ``);
 
-    return await this.sendMessage(
-      `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}`,
-      `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}:\n\n` +
+    const data = {
+      text:
+        `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}:\n\n` +
         `Mã - Giá vốn - Giá bán - KL - Lãi - Lãi/NAV\n` +
         '```' +
-        `${data}` +
+        `${profitReportData}` +
         '```',
-      slackWebhookUrl,
-    );
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text:
+              `Báo cáo lãi lỗ ${formatDateToDDMMYYYY(new Date())}:\n\n` +
+              `Mã - Giá vốn - Giá bán - KL - Lãi - Lãi/NAV\n` +
+              '```' +
+              `${profitReportData}` +
+              '```',
+          },
+        },
+      ],
+    };
+
+    return await this.sendMessage(data, slackWebhookUrl);
   }
 
-  async sendMessage(
-    previewText: string,
-    detail: string,
-    webhooks: SlackWebhookUrlType[],
-  ) {
+  async sendMessage(detail: any, webhooks: SlackWebhookUrlType[]) {
     for (const webhook of webhooks) {
       if (webhook.url) {
         try {
-          // const result = await axios.post(webhook.url, {
-          //   text,
-          // });
-
-          const result = await axios.post(
-            webhook.url,
-            JSON.stringify({
-              text: previewText,
-              blocks: [
-                {
-                  type: 'section',
-                  text: {
-                    type: 'mrkdwn',
-                    text: detail,
-                  },
-                },
-              ],
-            }),
-          );
+          const result = await axios.post(webhook.url, detail);
 
           return result;
         } catch (error) {

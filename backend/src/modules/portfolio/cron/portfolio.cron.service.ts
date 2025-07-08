@@ -1,8 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { PortfolioService } from '../portfolio.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class PortfolioCronService {
@@ -13,9 +13,11 @@ export class PortfolioCronService {
   ) {
     // this.weeklyCron();
   }
-  // run everyday at 8:45 am
-  // @Cron('0 45 8 * * *')
-  @Cron(CronExpression.EVERY_WEEK)
+
+  // @Cron('0 17 * * 5', {
+  //   timeZone: 'Asia/Ho_Chi_Minh',
+  // })
+  // @Cron('* * * * *')
   async weeklyCron() {
     /**
      * Send email link to attend and link to create annual leave request

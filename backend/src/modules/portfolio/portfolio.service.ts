@@ -142,43 +142,47 @@ export class PortfolioService extends CoreService<Portfolio> {
   }
 
   async processMonthlyCron() {
-    const users = await this.userService.getRepository().find({
-      ...this.userService.createDefaultFindOption(),
-    });
-
-    for (const user of users) {
-      const dataDto = this.userService.convertDataToResponse(user);
-
-      const portfolios = await this.portfolioRepository.find({
-        where: {
-          createdUser: dataDto.id,
-        },
-        order: {
-          stockCode: 'desc',
-        },
+    try {
+      const users = await this.userService.getRepository().find({
+        ...this.userService.createDefaultFindOption(),
       });
 
-      await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
+      for (const user of users) {
+        const dataDto = this.userService.convertDataToResponse(user);
 
-      const now = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 7);
+        const portfolios = await this.portfolioRepository.find({
+          where: {
+            createdUser: dataDto.id,
+          },
+          order: {
+            stockCode: 'desc',
+          },
+        });
 
-      const orders = await this.stockOrderService.getRepository().find({
-        where: {
-          createdUser: dataDto.id,
-          side: StockOrderSide.SELL,
-          createdAt: And(MoreThan(start), LessThanOrEqual(now)),
-        },
-        order: {
-          stockCode: 'desc',
-        },
-      });
-      await this.slackService.sendSellProfitSignalMessage(
-        portfolios,
-        orders,
-        dataDto,
-      );
+        await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
+
+        // const now = new Date();
+        // const start = new Date();
+        // start.setDate(start.getDate() - 7);
+
+        // const orders = await this.stockOrderService.getRepository().find({
+        //   where: {
+        //     createdUser: dataDto.id,
+        //     side: StockOrderSide.SELL,
+        //     createdAt: And(MoreThan(start), LessThanOrEqual(now)),
+        //   },
+        //   order: {
+        //     stockCode: 'desc',
+        //   },
+        // });
+        // await this.slackService.sendSellProfitSignalMessage(
+        //   portfolios,
+        //   orders,
+        //   dataDto,
+        // );
+      }
+    } catch (error) {
+      console.error('Error in processMonthlyCron', error);
     }
   }
 }
