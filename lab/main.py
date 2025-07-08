@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
 from matplotlib.table import Table
+from typing import List
 
 
 # Load biến môi trường từ .env
@@ -34,7 +35,7 @@ class PortfolioReport(BaseModel):
 
 
 @app.post("/generate-portfolio-report", response_class=Response, responses={200: {"content": {"application/json": {}}}})
-async def generate(data: list[PortfolioReport]):
+async def generate(data: List[PortfolioReport]):
     # Chọn các cột cần hiển thị
     print(data)
     headers = ['Mã CP', 'Giá', 'KL', '%NAV']
