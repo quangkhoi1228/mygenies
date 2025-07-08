@@ -1,125 +1,99 @@
-# name: Deploy to Speakko server prod
+name: Deploy to Speakko server prod
 
-# # Controls when the action will run.
-# on:
-#   # Triggers the workflow on push or pull request events but only for the master branch
-#   push:
-#     branches: ["main"]
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: ["main"]
 
-# # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-# jobs:
-#   # This workflow contains a single job called "build"
-#   build:
-#     # The type of runner that the job will run on
-#     runs-on: ubuntu-latest
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
 
-#     # Steps represent a sequence of tasks that will be executed as part of the job
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v3
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Node.js 21
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
 
-#       - name: Write .env.production file
-#         run: |
-#           echo "${{ secrets.ENV_FILE }}" > frontend/.env.local
-#       - name: Setup Node.js 21
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: 21
 
-#       - name: Check build frontend
-#         run: |
-#           export NODE_OPTIONS="--max_old_space_size=4096"
-#           cd frontend
-#           npm install
-#           npm run build
+      - name: Check build backend
+        run: |
+          export NODE_OPTIONS="--max_old_space_size=4096"
+          cd backend
+          npm install
+          npm run build
 
-#       - name: Check build backend
-#         run: |
-#           export NODE_OPTIONS="--max_old_space_size=4096"
-#           cd backend
-#           npm install
-#           npm run build
+      - name: Pull code
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
 
-#       - name: Pull code
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.HOST }}
-#           username: ${{ secrets.USERNAME }}
-#           key: ${{ secrets.SSH_PRIVATE_KEY }}
-#           port: 22
+          script: |
+            cd /home/web/mygenies/prod
+            export NVM_DIR="$HOME/.nvm"
+            source ~/.nvm/nvm.sh
+            nvm use 21
+            git pull
+            npm install -g pm2
 
-#           script: |
-#             cd /home/web/speakko/prod
-#             export NVM_DIR="$HOME/.nvm"
-#             source ~/.nvm/nvm.sh
-#             rm package-lock.json 
-#             rm yarn.lock
-#             nvm use 21
-#             git pull
 
-#       - name: Build backend
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.HOST }}
-#           username: ${{ secrets.USERNAME }}
-#           key: ${{ secrets.SSH_PRIVATE_KEY }}
-#           port: 22
+      - name: Build backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
 
           
-#           script: |
-#             cd /home/web/speakko/prod/backend
-#             export NVM_DIR="$HOME/.nvm"
-#             source ~/.nvm/nvm.sh
-#             nvm use 21
-#             npm install && npm run build
+          script: |
+            cd /home/web/mygenies/prod/backend
+            export NVM_DIR="$HOME/.nvm"
+            source ~/.nvm/nvm.sh
+            nvm use 21
+            npm install && npm run build
             
 
-#       - name: Start backend
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.HOST }}
-#           username: ${{ secrets.USERNAME }}
-#           key: ${{ secrets.SSH_PRIVATE_KEY }}
-#           port: 22
+      - name: Start backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
 
-#           script: |
-#             cd /home/web/speakko/prod/backend
-#             export NVM_DIR="$HOME/.nvm"
-#             source ~/.nvm/nvm.sh
-#             nvm use 21
-#             pm2 delete speakko_backend_prod
-#             pm2 start "npm run start" --name=speakko_backend_prod
+          script: |
+            cd /home/web/speakko/prod/backend
+            export NVM_DIR="$HOME/.nvm"
+            source ~/.nvm/nvm.sh
+            nvm use 21
+            pm2 delete mygenies_backend_prod
+            pm2 start "npm run start" --name=mygenies_backend_prod
 
 
-      
-#       - name: Build frontend
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.HOST }}
-#           username: ${{ secrets.USERNAME }}
-#           key: ${{ secrets.SSH_PRIVATE_KEY }}
-#           port: 22
+      - name: Start python lab
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
 
-#           script: |
-#             export NODE_OPTIONS="--max_old_space_size=4096"
-#             cd /home/web/speakko/prod/frontend
-#             export NVM_DIR="$HOME/.nvm"
-#             source ~/.nvm/nvm.sh
-#             nvm use 21
-#             npm install && npm run build
-
-#       - name: Start frontend
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.HOST }}
-#           username: ${{ secrets.USERNAME }}
-#           key: ${{ secrets.SSH_PRIVATE_KEY }}
-#           port: 22
-
-#           script: |
-#             cd /home/web/speakko/prod/frontend
-#             export NVM_DIR="$HOME/.nvm"
-#             source ~/.nvm/nvm.sh
-#             nvm use 21
-#             pm2 delete speakko_ai_frontend_prod
-#             pm2 start "npm run start:prod" --name=speakko_ai_frontend_prod
+          script: |
+            cd /home/web/mygenies/prod/lab
+            export NVM_DIR="$HOME/.nvm"
+            source ~/.nvm/nvm.sh
+            nvm use 21
+            source .venv/bin/activate
+            sh run.sh
+    
