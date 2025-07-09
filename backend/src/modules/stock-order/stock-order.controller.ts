@@ -22,6 +22,12 @@ export class StockOrderController {
     return this.stockOrderService.findAll(req);
   }
 
+  @Get('search-stock')
+  searchStockCode(@Query('query') query: string) {
+    console.log(query);
+    return this.stockOrderService.searchStockCode(query);
+  }
+
   // @Get(':id')
   // findOne(@Param('id') id: string) {
   //   return this.stockOrderService.findOne(+id);

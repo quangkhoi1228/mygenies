@@ -166,4 +166,28 @@ export class StockOrderService extends CoreService<StockOrder> {
       throw new BadRequestException('Stock order not existed');
     }
   }
+
+  async searchStockCode(query: string) {
+    const url = `https://iboard-query.ssi.com.vn/stock/stock-info?limit=25&query=${query}&exchange=&language=vi&types[]=s`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json, text/plain, */*',
+          origin: 'https://iboard.ssi.com.vn',
+          referer: 'https://iboard.ssi.com.vn/',
+          'user-agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        },
+      });
+
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error('Proxy error:', error);
+      return { error: 'Failed to fetch data' + error.message };
+    }
+  }
 }
