@@ -5,17 +5,16 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { And, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
 import { CoreService } from '../../shared/modules/routes/core.service';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
+import { StockOrderService } from '../stock-order/stock-order.service';
+import { SlackService } from '../third-party/slack/slack.service';
+import { UserService } from '../user/user/user.service';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { Portfolio } from './entities/portfolio.entity';
-import { UserService } from '../user/user/user.service';
-import { SlackService } from '../third-party/slack/slack.service';
-import { StockOrderService } from '../stock-order/stock-order.service';
-import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)

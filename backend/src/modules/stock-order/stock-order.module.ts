@@ -5,12 +5,14 @@ import { StockOrderController } from './stock-order.controller';
 import { StockOrderService } from './stock-order.service';
 import { UserModule } from '../user/user/user.module';
 import { PortfolioModule } from '../portfolio/portfolio.module';
+import { StockOrderTransactionModule } from '../stock-transaction/stock-order-transaction.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([StockOrder]),
     forwardRef(() => PortfolioModule),
     UserModule,
+    StockOrderTransactionModule,
   ],
   controllers: [StockOrderController],
   providers: [StockOrderService],
