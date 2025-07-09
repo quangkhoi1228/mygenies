@@ -1,13 +1,13 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { PortfolioService } from '../portfolio.service';
+import { ReportService } from '../report.service';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class PortfolioCronService {
+export class ReportCronService {
   constructor(
-    private readonly portfolioService: PortfolioService,
+    private readonly reportService: ReportService,
 
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
@@ -17,8 +17,8 @@ export class PortfolioCronService {
   // @Cron('0 17 * * 5', {
   //   timeZone: 'Asia/Ho_Chi_Minh',
   // })
-  // @Cron('* * * * *')
-  async weeklyCron() {
+  @Cron('* * * * *')
+  async reportPortfolioAndSellProfitCron() {
     /**
      * Send email link to attend and link to create annual leave request
      */
@@ -27,7 +27,7 @@ export class PortfolioCronService {
     console.log('------> Cron portfolio run <------');
     const check = new Date();
     console.log('Start', `- ${check} -> ${check.getTime()}`);
-    await this.portfolioService.processMonthlyCron();
+    await this.reportService.processReportPortfolioAndSellProfitCron();
     console.log('End', `- ${new Date().getTime() - check.getTime()}`);
   }
 }
