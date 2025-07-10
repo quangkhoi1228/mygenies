@@ -303,6 +303,7 @@ async def generate(data: SellProfitReportType):
 
 
 def handle_upload_file(buffer: bytes) -> dict:
+    
     # 1. Phát hiện MIME type
     mime = "image/png"
 
