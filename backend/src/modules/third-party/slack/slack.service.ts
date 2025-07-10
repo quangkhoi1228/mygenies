@@ -1,4 +1,4 @@
-import { HttpStatus, HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { Portfolio } from 'src/modules/portfolio/entities/portfolio.entity';
 import {
@@ -17,7 +17,6 @@ import {
 } from 'src/utils/financeUtils';
 import { isNotEmpty } from 'src/utils/object.util';
 import { ConvexService } from '../convex/convex.service';
-import { PortfolioReportType } from './types/portfolio-report.type';
 
 @Injectable()
 export class SlackService {
@@ -80,65 +79,65 @@ export class SlackService {
     }
   }
 
-  async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
-    try {
-      console.log('sendPortfolioSignalMessage', portfolios);
-      const { slackWebhookUrl, nav } = user.userInfo;
+  // async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
+  //   try {
+  //     console.log('sendPortfolioSignalMessage', portfolios);
+  //     const { slackWebhookUrl, nav } = user.userInfo;
 
-      if (!slackWebhookUrl) {
-        console.warn('Slack webhook URL not set');
-        return;
-      }
+  //     if (!slackWebhookUrl) {
+  //       console.warn('Slack webhook URL not set');
+  //       return;
+  //     }
 
-      const portfolioReportData: PortfolioReportType[] = portfolios.reduce(
-        (pre, current) => {
-          const reportPortfolioItem: PortfolioReportType = {
-            ...current,
-            percent: '',
-          };
-          const navPercent = getPortfolioPercentage(
-            reportPortfolioItem.price,
-            reportPortfolioItem.volume,
-            nav,
-          );
+  //     const portfolioReportData: PortfolioReportType[] = portfolios.reduce(
+  //       (pre, current) => {
+  //         const reportPortfolioItem: PortfolioReportType = {
+  //           ...current,
+  //           percent: '',
+  //         };
+  //         const navPercent = getPortfolioPercentage(
+  //           reportPortfolioItem.price,
+  //           reportPortfolioItem.volume,
+  //           nav,
+  //         );
 
-          reportPortfolioItem.percent = navPercent;
+  //         reportPortfolioItem.percent = navPercent;
 
-          pre.push(reportPortfolioItem);
+  //         pre.push(reportPortfolioItem);
 
-          return pre;
-        },
-        [],
-      );
+  //         return pre;
+  //       },
+  //       [],
+  //     );
 
-      console.log(portfolioReportData);
-      if (portfolioReportData.length > 0) {
-      }
-      const response = await axios.post(
-        `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
-        portfolioReportData,
-      );
+  //     console.log(portfolioReportData);
+  //     if (portfolioReportData.length > 0) {
+  //     }
+  //     const response = await axios.post(
+  //       `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
+  //       portfolioReportData,
+  //     );
 
-      console.log(response.data);
+  //     console.log(response.data);
 
-      return await this.sendMessage(
-        {
-          text: `Báo cáo portfolio ${formatDateToDDMMYYYY(new Date())}`,
-          blocks: [
-            {
-              type: 'image',
-              image_url: response.data.url,
-              alt_text: 'Mô tả ảnh',
-            },
-          ],
-        },
-        slackWebhookUrl,
-      );
-    } catch (error) {
-      console.error(error);
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
+  //     return await this.sendMessage(
+  //       {
+  //         text: `Báo cáo portfolio ${formatDateToDDMMYYYY(new Date())}`,
+  //         blocks: [
+  //           {
+  //             type: 'image',
+  //             image_url: response.data.url,
+  //             alt_text: 'Mô tả ảnh',
+  //           },
+  //         ],
+  //       },
+  //       slackWebhookUrl,
+  //     );
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  //   }
+  // }
 
   async sendSellProfitSignalMessage(
     portfolios: Portfolio[],

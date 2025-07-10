@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import axios, { AxiosResponse } from 'axios';
 import { getPortfolioPercentage } from 'src/utils/financeUtils';
+import { And, LessThanOrEqual, MoreThan } from 'typeorm';
 import { PortfolioService } from '../portfolio/portfolio.service';
+import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
+import { StockOrderTransactionService } from '../stock-transaction/stock-order-transaction.service';
 import { SlackService } from '../third-party/slack/slack.service';
 import { UserDataDto } from '../user/user/dto/create-user.dto';
 import { UserService } from '../user/user/user.service';
-import { PortfolioReportType } from '../third-party/slack/types/portfolio-report.type';
+import { PortfolioReportType } from './types/portfolio-report.type';
+import {
+  SellProfitReportTransactionType,
+  SellProfitReportType,
+} from './types/sell-profit-report.type';
+import { UploadImageReportResType } from './types/upload-image-report-res.type';
+import { SlackMessageType } from './types/slack-block.type';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -13,6 +23,7 @@ export class ReportService {
     private readonly userService: UserService,
     private readonly slackService: SlackService,
     private readonly portfolioService: PortfolioService,
+    private readonly stockOrderTransactionService: StockOrderTransactionService,
   ) {}
 
   async processReportPortfolioAndSellProfitCron() {
@@ -24,60 +35,173 @@ export class ReportService {
       for (const user of users) {
         const dataDto = this.userService.convertDataToResponse(user);
 
-        const reportPortfolios = await this.getReportPortfolio(dataDto);
+        if (!dataDto.userInfo.slackWebhookUrl) {
+          return;
+        }
 
-        console.log('portfolios', JSON.stringify(reportPortfolios, null, 2));
+        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
 
-        // await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
+        const reportData: SlackMessageType = {
+          text: `CẬP NHẬT DANH MỤC TUẦN`,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `Team NTH Invest gửi đến quý nhà đầu tư, danh mục đầu tư trong tuần của team để anh/chị có thể theo dõi. `,
+              },
+            },
+          ],
+        };
 
-        // const now = new Date();
-        // const start = new Date();
-        // start.setDate(start.getDate() - 7);
+        const reportPortfoliosImageUrl = await this.getReportPortfolio(dataDto);
+        console.log(reportPortfoliosImageUrl);
+        if (reportPortfoliosImageUrl) {
+          reportData.blocks.push({
+            type: 'image',
+            image_url: reportPortfoliosImageUrl,
+            alt_text: 'Danh mục đầu tư trong tuần',
+          });
+        } else {
+          reportData.blocks.push({
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: 'Hiện tại không có mã cổ phiếu nào trong danh mục',
+            },
+          });
+        }
 
-        // const orders = await this.stockOrderService.getRepository().find({
-        //   where: {
-        //     createdUser: dataDto.id,
-        //     side: StockOrderSide.SELL,
-        //     createdAt: And(MoreThan(start), LessThanOrEqual(now)),
-        //   },
-        //   order: {
-        //     stockCode: 'desc',
-        //   },
-        // });
-        // await this.slackService.sendSellProfitSignalMessage(
-        //   portfolios,
-        //   orders,
-        //   dataDto,
-        // );
+        const reportSellProfitImageUrl =
+          await this.getReportSellProfit(dataDto);
+        if (reportSellProfitImageUrl) {
+          reportData.blocks.push({
+            type: 'image',
+            image_url: reportSellProfitImageUrl,
+            alt_text: 'Báo cáo lãi/lỗ trong tuần',
+          });
+        } else {
+          reportData.blocks.push({
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: 'Hiện tại không có lệnh bán nào trong tuần',
+            },
+          });
+        }
+
+        await this.slackService.sendMessage(reportData, slackWebhookUrl);
       }
     } catch (error) {
-      console.error('Error in processMonthlyCron', error);
+      console.error('Error in processMonthlyCron', error.message);
     }
   }
 
   async getReportPortfolio(user: UserDataDto) {
-    const portfolios = await this.portfolioService.find({
-      where: {
-        createdUser: user.id,
-      },
-      order: {
-        stockCode: 'desc',
-      },
-    });
-    const reportPortfolios: PortfolioReportType[] = portfolios.map(
-      (portfolio) => {
-        return {
-          ...portfolio,
-          percent: getPortfolioPercentage(
-            portfolio.price,
-            portfolio.volume,
-            user.userInfo.nav,
-          ),
-          status: 'Nắm giữ',
-        };
-      },
-    );
+    try {
+      const portfolios = await this.portfolioService.find({
+        where: {
+          createdUser: user.id,
+        },
+        order: {
+          stockCode: 'desc',
+        },
+      });
 
-    return reportPortfolios;
+      if (portfolios.length === 0) {
+        return null;
+      }
+
+      const reportPortfolios: PortfolioReportType[] = portfolios.map(
+        (portfolio) => {
+          return {
+            ...portfolio,
+            price: portfolio.price / 1000,
+            percent: getPortfolioPercentage(
+              portfolio.price,
+              portfolio.volume,
+              user.userInfo.nav,
+            ),
+            status: 'Nắm giữ',
+          };
+        },
+      );
+
+      console.log(reportPortfolios);
+
+      const res: AxiosResponse<UploadImageReportResType> = await axios.post(
+        `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
+        reportPortfolios,
+      );
+
+      return res.data.url;
+    } catch (error) {
+      console.error('Error in report portfolio', error.message);
+      return null;
+    }
+  }
+
+  async getReportSellProfit(user: UserDataDto) {
+    try {
+      const now = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+
+      const transactions = await this.stockOrderTransactionService.find({
+        where: {
+          createdUser: user.id,
+          side: StockOrderSide.SELL,
+          createdAt: And(MoreThan(start), LessThanOrEqual(now)),
+        },
+        order: {
+          stockCode: 'desc',
+        },
+      });
+
+      if (transactions.length === 0) {
+        return null;
+      }
+
+      const sellProfitTransactions: SellProfitReportTransactionType[] =
+        transactions.map((transaction) => {
+          return {
+            stockCode: transaction.stockCode,
+            avgPrice: transaction.avgPrice / 1000,
+            sellPrice: transaction.orderPrice / 1000,
+            volume: transaction.orderVolume,
+            status: 'Đã bán',
+            profit:
+              (transaction.orderPrice - transaction.avgPrice) *
+              transaction.orderVolume,
+            profitPercent:
+              ((transaction.orderPrice - transaction.avgPrice) /
+                transaction.avgPrice) *
+              100,
+          };
+        });
+
+      const totalProfit = sellProfitTransactions.reduce(
+        (acc, transaction) => acc + transaction.profit,
+        0,
+      );
+      const totalProfitPercent = (totalProfit / user.userInfo.nav) * 100;
+
+      const reportSellProfit: SellProfitReportType = {
+        totalProfit,
+        totalProfitPercent,
+        transactions: sellProfitTransactions,
+      };
+
+      console.log(reportSellProfit);
+      const res: AxiosResponse<UploadImageReportResType> = await axios.post(
+        `${process.env.NEST_PUBLIC_REPORT_URL}/generate-sell-profit-report`,
+        reportSellProfit,
+      );
+
+      return res.data.url;
+    } catch (error) {
+      console.error('Error in report sell profit', error);
+      return null;
+    }
   }
 }
