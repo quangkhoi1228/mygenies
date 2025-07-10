@@ -306,7 +306,7 @@ def handle_upload_file(buffer: bytes) -> dict:
 
  # ==== Màu sắc ====
 colors = {
-    'header_bg': '#d9ead3',
+    'header_bg': '#b7d7a8',
     'header_text': 'black',
     'cell_bg': 'white',
     'cell_text': 'black',
