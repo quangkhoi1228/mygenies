@@ -95,5 +95,6 @@ jobs:
             source ~/.nvm/nvm.sh
             nvm use 21
             source .venv/bin/activate
+            pip install -r requirements.txt
             sh run-dev.sh
     
