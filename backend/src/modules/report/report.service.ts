@@ -36,11 +36,11 @@ export class ReportService {
       for (const user of users) {
         const dataDto = this.userService.convertDataToResponse(user);
 
-        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
-        console.log(slackWebhookUrl);
-        if (slackWebhookUrl) {
+        if (!dataDto.userInfo.slackWebhookUrl) {
           return;
         }
+        console.log(dataDto.userInfo.slackWebhookUrl);
+        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
 
         const reportData: SlackMessageType = {
           text: `CẬP NHẬT DANH MỤC TUẦN`,
