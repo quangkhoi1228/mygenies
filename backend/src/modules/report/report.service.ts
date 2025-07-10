@@ -36,6 +36,7 @@ export class ReportService {
       for (const user of users) {
         const dataDto = this.userService.convertDataToResponse(user);
 
+        console.log(dataDto.userInfo);
         if (!dataDto.userInfo.slackWebhookUrl) {
           return;
         }
