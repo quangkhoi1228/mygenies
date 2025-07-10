@@ -46,8 +46,12 @@ export class StockOrderService extends CoreService<StockOrder> {
 
     const user = await this.userService.currentUser(req);
 
+    const newStockOrder = {
+      ...createStockOrderDto,
+      price: processPrice,
+    };
     const order = await this.createCoreService(
-      [createStockOrderDto],
+      [newStockOrder],
       req.user.userId,
     );
 

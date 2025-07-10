@@ -70,7 +70,7 @@ async def generate(data: List[PortfolioReport]):
              f"{d.volume:,}", d.status, d.percent] for d in data]
 
     # ==== Cấu hình bảng ====
-    col_widths = [140, 150, 150, 200, 150]
+    col_widths = [120, 120, 120, 120, 120]
     row_height = 40
     header_height = 40
     margin = 2
@@ -95,23 +95,29 @@ async def generate(data: List[PortfolioReport]):
     }
 
     # ==== Hàm vẽ ô ====
-    def draw_cell(x, y, w, h, text, font, fill, border=True):
+    def draw_cell(x, y, w, h, text, font, fill, border=True, align='center'):
         draw.rectangle([x, y, x + w, y + h], fill=fill)
         if border:
             draw.rectangle([x, y, x + w, y + h],
-                           outline=colors['border'], width=1)
+                        outline=colors['border'], width=1)
         if text:
             bbox = draw.textbbox((0, 0), text, font=font)
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-            draw.text((x + (w - tw) / 2, y + (h - th) / 2), text,
-                      fill=colors['header_text'], font=font)
+            if align == 'center':
+                x_offset = x + (w - tw) // 2
+            elif align == 'right':
+                x_offset = x + w - tw - margin * 2
+            else:
+                x_offset = x
+            draw.text((x_offset, y + (h - th) // 2), text,
+                    fill=colors['header_text'], font=font)
 
     # ==== Vẽ header ====
     x = margin
     y = margin
     for i, header in enumerate(headers):
         draw_cell(x, y, col_widths[i], header_height,
-                  header, font_bold, colors['header_bg'])
+                header, font_bold, colors['header_bg'], align='center')
         x += col_widths[i]
 
     # ==== Vẽ dữ liệu ====
@@ -120,8 +126,12 @@ async def generate(data: List[PortfolioReport]):
         y = margin + header_height + row_idx * row_height
         for col_idx, value in enumerate(row):
             font = font_bold if col_idx == 0 else font_regular
+            if col_idx in [0, 3]:
+                align = 'center'
+            else:
+                align = 'right'
             draw_cell(x, y, col_widths[col_idx], row_height, str(
-                value), font, colors['cell_bg'])
+                value), font, colors['cell_bg'], align=align)
             x += col_widths[col_idx]
 
     # ===== 📦 Export thành buffer =====
@@ -139,7 +149,7 @@ async def generate(data: SellProfitReportType):
 
     # ==== Cấu hình scale ====
     SCALE = 2
-    col_widths = [80, 100, 100, 80, 120, 120, 100]
+    col_widths = [60, 60, 60, 60, 70, 120, 60]
     col_widths = [w * SCALE for w in col_widths]
     row_height = 25 * SCALE
     header_height = 25 * SCALE
@@ -176,7 +186,7 @@ async def generate(data: SellProfitReportType):
 
     rows.append([
         "", "", "", "", "",
-        f"{int(data.totalProfit):g}",
+        f"{int(data.totalProfit):,}",
         f"{round(data.totalProfitPercent * 100, 2)}%"
     ])
 
@@ -186,46 +196,16 @@ async def generate(data: SellProfitReportType):
     image_width = table_width + 2 * margin
     image_height = table_height + 2 * margin
 
-    # ==== Màu sắc ====
-    colors = {
-        'header_bg': '#d9ead3',
-        'header_text': 'black',
-        'cell_bg': 'white',
-        'cell_text': 'black',
-        'total_bg': '#00ff00',
-        'total_text': 'black',
-        'profit_bg': '#ff00ff',
-        'profit_positive': 'green',
-        'profit_negative': 'red',
-        'border': 'black'
-    }
-
     # ==== Tạo ảnh ====
     img = Image.new('RGB', (image_width, image_height), 'white')
     draw = ImageDraw.Draw(img)
-
-    # ==== Hàm vẽ ô ====
-    def draw_cell(x, y, width, height, text, bg_color, text_color, font, border=True):
-        draw.rectangle([x, y, x + width, y + height], fill=bg_color)
-        if border:
-            draw.rectangle([x, y, x + width, y + height],
-                           outline=colors['border'], width=1)
-        if text:
-            try:
-                bbox = draw.textbbox((0, 0), text, font=font)
-                tw = bbox[2] - bbox[0]
-                th = bbox[3] - bbox[1]
-            except:
-                tw, th = draw.textsize(text, font=font)
-            draw.text((x + (width - tw) // 2, y + (height - th) // 2),
-                      text, fill=text_color, font=font)
 
     # ==== Vẽ header ====
     x_offset = margin
     y_offset = margin
     for i, header in enumerate(headers):
         draw_cell(x_offset, y_offset, col_widths[i], header_height, header,
-                  colors['header_bg'], colors['header_text'], font_header)
+                  colors['header_bg'], colors['header_text'], font_header, align='center', draw=draw, margin=margin)
         x_offset += col_widths[i]
 
     # ==== Vẽ dữ liệu ====
@@ -246,16 +226,16 @@ async def generate(data: SellProfitReportType):
                     merged_width = sum(col_widths[0:5])
 
                     draw.rectangle([x_offset, y_offset, x_offset + merged_width,
-                                   y_offset + row_height], fill=colors['total_bg'])
+                                    y_offset + row_height], fill=colors['total_bg'])
 
                     draw.line([x_offset, y_offset, x_offset + merged_width,
-                              y_offset], fill=colors['border'], width=1)
+                               y_offset], fill=colors['border'], width=1)
                     draw.line([x_offset, y_offset + row_height, x_offset + merged_width,
-                              y_offset + row_height], fill=colors['border'], width=1)
+                               y_offset + row_height], fill=colors['border'], width=1)
                     draw.line([x_offset, y_offset, x_offset, y_offset +
-                              row_height], fill=colors['border'], width=1)
+                               row_height], fill=colors['border'], width=1)
                     draw.line([x_offset + merged_width, y_offset, x_offset + merged_width,
-                              y_offset + row_height], fill=colors['border'], width=1)
+                               y_offset + row_height], fill=colors['border'], width=1)
 
                     try:
                         bbox = draw.textbbox((0, 0), "Tổng", font=font_bold)
@@ -274,7 +254,7 @@ async def generate(data: SellProfitReportType):
                     # color = colors['profit_negative'] if '-' in cell_value else colors['profit_positive']
                     color = 'black'
                     draw_cell(x_offset, y_offset, width, row_height,
-                              cell_value, colors['profit_bg'], color, font_bold)
+                              cell_value, colors['profit_bg'], color, font_bold, align='right', draw=draw, margin=margin)
 
             else:
                 if col_idx == 0:
@@ -288,8 +268,14 @@ async def generate(data: SellProfitReportType):
                 else:
                     color = colors['cell_text']
                     font = font_body
+
+                if col_idx in [0, 4]:
+                    align = 'center'
+                else:
+                    align = 'right'
+
                 draw_cell(x_offset, y_offset, width, row_height,
-                          cell_value, colors['cell_bg'], color, font)
+                          cell_value, colors['cell_bg'], color, font, align=align, draw=draw, margin=margin)
             x_offset += width
 
     # ===== 📦 Export thành buffer =====
@@ -303,7 +289,7 @@ async def generate(data: SellProfitReportType):
 
 
 def handle_upload_file(buffer: bytes) -> dict:
-    
+
     # 1. Phát hiện MIME type
     mime = "image/png"
 
@@ -316,3 +302,41 @@ def handle_upload_file(buffer: bytes) -> dict:
     resp = requests.post(url, params=params, data=buffer, headers=headers)
     resp.raise_for_status()
     return resp.content
+
+
+ # ==== Màu sắc ====
+colors = {
+    'header_bg': '#d9ead3',
+    'header_text': 'black',
+    'cell_bg': 'white',
+    'cell_text': 'black',
+    'total_bg': '#00ff00',
+    'total_text': 'black',
+    'profit_bg': '#ff00ff',
+    'profit_positive': 'green',
+    'profit_negative': 'red',
+    'border': 'black'
+}
+# ==== Hàm vẽ ô ====
+
+
+def draw_cell(x, y, width, height, text, bg_color, text_color, font, border=True, align='right', draw=None, margin=2):
+    draw.rectangle([x, y, x + width, y + height], fill=bg_color)
+    if border:
+        draw.rectangle([x, y, x + width, y + height],
+                       outline=colors['border'], width=1)
+    if text:
+        try:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            tw = bbox[2] - bbox[0]
+            th = bbox[3] - bbox[1]
+        except:
+            tw, th = draw.textsize(text, font=font)
+        if align == 'center':
+            x_offset = x + (width - tw) // 2
+        elif align == 'right':
+            x_offset = x + width - tw - margin * 2
+        else:
+            x_offset = x
+        draw.text((x_offset, y + (height - th) // 2),
+                  text, fill=text_color, font=font)
