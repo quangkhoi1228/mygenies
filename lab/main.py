@@ -307,7 +307,7 @@ def handle_upload_file(buffer: bytes) -> dict:
     mime = "image/png"
 
     # 2. Tạo URL và thêm param author
-    url = f"https://little-toucan-674.convex.site/sendFile"
+    url = f"{CONVEX_URL}/sendFile"
     params = {"author": "Stock-signal"}
 
     # 3. Gửi POST với raw buffer
