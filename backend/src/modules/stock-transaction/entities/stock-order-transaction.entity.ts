@@ -41,6 +41,14 @@ export class StockOrderTransaction extends CoreEntityHasPrimaryId {
   orderValue: number;
 
   @ApiProperty()
+  @Column({ nullable: true })
+  tax: number;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  fee: number;
+
+  @ApiProperty()
   @Column()
   avgVolume: number;
 

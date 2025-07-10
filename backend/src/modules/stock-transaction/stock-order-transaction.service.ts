@@ -9,6 +9,9 @@ import { CreateStockOrderDto } from '../stock-order/dto/create-stock-order.dto';
 import { CreateStockOrderTransactionDto } from './dto/create-stock-order-transaction.dto';
 import { UpdateStockOrderTransactionDto } from './dto/update-stock-order-transaction.dto';
 import { StockOrderTransaction } from './entities/stock-order-transaction.entity';
+import { AppConfigService } from '../app-config/app-config.service';
+import { AppConfigName } from '../app-config/dto/create-app-config.dto';
+import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -16,6 +19,7 @@ export class StockOrderTransactionService extends CoreService<StockOrderTransact
   constructor(
     @InjectRepository(StockOrderTransaction)
     private readonly stockOrderTransactionRepository: Repository<StockOrderTransaction>,
+    private readonly appConfigService: AppConfigService,
   ) {
     super(stockOrderTransactionRepository);
   }
@@ -24,12 +28,44 @@ export class StockOrderTransactionService extends CoreService<StockOrderTransact
     createStockOrderTransactionDto: CreateStockOrderTransactionDto,
     req: AuthRequest,
   ) {
-    const items = await this.createCoreService(
-      createStockOrderTransactionDto,
-      req.user.userId,
-    );
+    try {
+      const taxConfig = await this.appConfigService.findOneByName(
+        AppConfigName.TAX,
+      );
+      const feeConfig = await this.appConfigService.findOneByName(
+        AppConfigName.FEE,
+      );
 
-    return items[0];
+      const taxRate = Number(taxConfig.value);
+      const feeRate = Number(feeConfig.value);
+
+      const orderValue =
+        createStockOrderTransactionDto.orderPrice *
+        createStockOrderTransactionDto.orderVolume;
+
+      const fee = orderValue * feeRate;
+
+      const tax =
+        createStockOrderTransactionDto.side === StockOrderSide.SELL
+          ? orderValue * taxRate
+          : 0;
+
+      const newStockOrderTransaction = {
+        ...createStockOrderTransactionDto,
+        orderValue,
+        tax,
+        fee,
+      };
+
+      const items = await this.createCoreService(
+        newStockOrderTransaction,
+        req.user.userId,
+      );
+
+      return items[0];
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async createByStockOrder(

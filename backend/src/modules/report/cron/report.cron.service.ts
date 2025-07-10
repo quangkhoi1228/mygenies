@@ -14,10 +14,10 @@ export class ReportCronService {
     // this.weeklyCron();
   }
 
-  @Cron('0 17 * * 5', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
-  // @Cron('* * * * *')
+  // @Cron('0 17 * * 5', {
+  //   timeZone: 'Asia/Ho_Chi_Minh',
+  // })
+  @Cron('* * * * *')
   async reportPortfolioAndSellProfitCron() {
     /**
      * Send email link to attend and link to create annual leave request

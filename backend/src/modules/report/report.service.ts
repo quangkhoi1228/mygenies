@@ -166,19 +166,23 @@ export class ReportService {
 
       const sellProfitTransactions: SellProfitReportTransactionType[] =
         transactions.map((transaction) => {
+          const profit =
+            (transaction.orderPrice - transaction.avgPrice) *
+              transaction.orderVolume -
+            transaction.tax -
+            transaction.fee;
+
+          const profitPercent =
+            (profit / (transaction.avgPrice * transaction.orderVolume)) * 100;
+
           return {
             stockCode: transaction.stockCode,
             avgPrice: transaction.avgPrice / 1000,
             sellPrice: transaction.orderPrice / 1000,
             volume: transaction.orderVolume,
             status: 'Đã bán',
-            profit:
-              (transaction.orderPrice - transaction.avgPrice) *
-              transaction.orderVolume,
-            profitPercent:
-              ((transaction.orderPrice - transaction.avgPrice) /
-                transaction.avgPrice) *
-              100,
+            profit,
+            profitPercent,
           };
         });
 
