@@ -41,6 +41,8 @@ import { StockOrderModule } from './modules/stock-order/stock-order.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { SlackModule } from './modules/third-party/slack/slack.module';
 import { ScreenshotModule } from './modules/screenshot/screenshot.module';
+import { StockOrderTransactionModule } from './modules/stock-transaction/stock-order-transaction.module';
+import { ReportModule } from './modules/report/report.module';
 
 @Module({
   imports: [
@@ -80,6 +82,8 @@ import { ScreenshotModule } from './modules/screenshot/screenshot.module';
     PortfolioModule,
     SlackModule,
     ScreenshotModule,
+    StockOrderTransactionModule,
+    ReportModule,
   ],
   controllers: [],
   providers: [],
