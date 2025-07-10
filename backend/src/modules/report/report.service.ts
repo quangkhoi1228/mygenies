@@ -38,7 +38,7 @@ export class ReportService {
 
         console.log(dataDto.userInfo);
         if (!dataDto.userInfo.slackWebhookUrl) {
-          return;
+          continue;
         }
         console.log(dataDto.userInfo.slackWebhookUrl);
         const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
