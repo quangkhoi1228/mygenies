@@ -30,7 +30,7 @@ export class SlackService {
       const { slackWebhookUrl, nav } = user.userInfo;
 
       console.log(stockOrder, portfolio, user);
-      const processPrice = stockOrder.price * 1000;
+      const processPrice = stockOrder.price;
 
       if (!isNotEmpty(slackWebhookUrl)) {
         console.warn('Slack webhook URL not set');
