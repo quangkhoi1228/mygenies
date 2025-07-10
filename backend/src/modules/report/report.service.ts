@@ -27,6 +27,7 @@ export class ReportService {
   ) {}
 
   async processReportPortfolioAndSellProfitCron() {
+    console.log(1);
     try {
       const users = await this.userService.getRepository().find({
         ...this.userService.createDefaultFindOption(),
@@ -35,11 +36,11 @@ export class ReportService {
       for (const user of users) {
         const dataDto = this.userService.convertDataToResponse(user);
 
-        if (!dataDto.userInfo.slackWebhookUrl) {
+        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
+        console.log(slackWebhookUrl);
+        if (slackWebhookUrl) {
           return;
         }
-
-        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
 
         const reportData: SlackMessageType = {
           text: `CẬP NHẬT DANH MỤC TUẦN`,
