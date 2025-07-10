@@ -12,7 +12,6 @@ function getConfig(): DataSourceOptions {
     password: process.env.DB_password.toString(),
     entities: ['dist/**/*.entity.{ts,js}'],
     migrations: ['dist/db/migrations/*.js'],
-    migrationsRun: true,
     synchronize: true,
     extra: {
       max: 100,
