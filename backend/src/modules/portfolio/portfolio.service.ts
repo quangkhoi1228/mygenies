@@ -5,17 +5,16 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { And, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
 import { CoreService } from '../../shared/modules/routes/core.service';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
+import { StockOrderService } from '../stock-order/stock-order.service';
+import { SlackService } from '../third-party/slack/slack.service';
+import { UserService } from '../user/user/user.service';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { Portfolio } from './entities/portfolio.entity';
-import { UserService } from '../user/user/user.service';
-import { SlackService } from '../third-party/slack/slack.service';
-import { StockOrderService } from '../stock-order/stock-order.service';
-import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -141,48 +140,48 @@ export class PortfolioService extends CoreService<Portfolio> {
     }
   }
 
-  async processMonthlyCron() {
-    try {
-      const users = await this.userService.getRepository().find({
-        ...this.userService.createDefaultFindOption(),
-      });
+  // async processMonthlyCron() {
+  //   try {
+  //     const users = await this.userService.getRepository().find({
+  //       ...this.userService.createDefaultFindOption(),
+  //     });
 
-      for (const user of users) {
-        const dataDto = this.userService.convertDataToResponse(user);
+  //     for (const user of users) {
+  //       const dataDto = this.userService.convertDataToResponse(user);
 
-        const portfolios = await this.portfolioRepository.find({
-          where: {
-            createdUser: dataDto.id,
-          },
-          order: {
-            stockCode: 'desc',
-          },
-        });
+  //       const portfolios = await this.portfolioRepository.find({
+  //         where: {
+  //           createdUser: dataDto.id,
+  //         },
+  //         order: {
+  //           stockCode: 'desc',
+  //         },
+  //       });
 
-        await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
+  //       await this.slackService.sendPortfolioSignalMessage(portfolios, dataDto);
 
-        // const now = new Date();
-        // const start = new Date();
-        // start.setDate(start.getDate() - 7);
+  //       // const now = new Date();
+  //       // const start = new Date();
+  //       // start.setDate(start.getDate() - 7);
 
-        // const orders = await this.stockOrderService.getRepository().find({
-        //   where: {
-        //     createdUser: dataDto.id,
-        //     side: StockOrderSide.SELL,
-        //     createdAt: And(MoreThan(start), LessThanOrEqual(now)),
-        //   },
-        //   order: {
-        //     stockCode: 'desc',
-        //   },
-        // });
-        // await this.slackService.sendSellProfitSignalMessage(
-        //   portfolios,
-        //   orders,
-        //   dataDto,
-        // );
-      }
-    } catch (error) {
-      console.error('Error in processMonthlyCron', error);
-    }
-  }
+  //       // const orders = await this.stockOrderService.getRepository().find({
+  //       //   where: {
+  //       //     createdUser: dataDto.id,
+  //       //     side: StockOrderSide.SELL,
+  //       //     createdAt: And(MoreThan(start), LessThanOrEqual(now)),
+  //       //   },
+  //       //   order: {
+  //       //     stockCode: 'desc',
+  //       //   },
+  //       // });
+  //       // await this.slackService.sendSellProfitSignalMessage(
+  //       //   portfolios,
+  //       //   orders,
+  //       //   dataDto,
+  //       // );
+  //     }
+  //   } catch (error) {
+  //     console.error('Error in processMonthlyCron', error);
+  //   }
+  // }
 }

@@ -16,6 +16,8 @@ import { StockOrder, StockOrderSide } from './entities/stock-order.entity';
 import { UpdatePortfolioDto } from '../portfolio/dto/update-portfolio.dto';
 import { SlackService } from '../third-party/slack/slack.service';
 import { UserService } from '../user/user/user.service';
+import { Portfolio } from '../portfolio/entities/portfolio.entity';
+import { StockOrderTransactionService } from '../stock-transaction/stock-order-transaction.service';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -29,6 +31,7 @@ export class StockOrderService extends CoreService<StockOrder> {
 
     private readonly userService: UserService,
     private readonly slackService: SlackService,
+    private readonly stockOrderTransactionService: StockOrderTransactionService,
   ) {
     super(stockOrderRepository);
   }
@@ -48,16 +51,17 @@ export class StockOrderService extends CoreService<StockOrder> {
       req.user.userId,
     );
 
-    let toCheckPortfolio = null;
+    let prevPortfolio: Portfolio = null;
+    let updatedPortfolio: Portfolio = null;
 
     // check out of money
     if (side === StockOrderSide.BUY.toString()) {
-      const portfolio = await this.portfolioService.findOneByStockCode(
+      prevPortfolio = await this.portfolioService.findOneByStockCode(
         stockCode,
         req,
       );
       let updatedPortfolioDto: UpdatePortfolioDto;
-      if (!portfolio) {
+      if (!prevPortfolio) {
         updatedPortfolioDto = {
           stockCode,
           volume,
@@ -66,10 +70,11 @@ export class StockOrderService extends CoreService<StockOrder> {
       } else {
         updatedPortfolioDto = {
           stockCode,
-          volume: portfolio.volume + volume,
+          volume: prevPortfolio.volume + volume,
           price: Math.round(
-            (portfolio.price * portfolio.volume + processPrice * volume) /
-              (portfolio.volume + volume),
+            (prevPortfolio.price * prevPortfolio.volume +
+              processPrice * volume) /
+              (prevPortfolio.volume + volume),
           ),
         };
       }
@@ -78,33 +83,40 @@ export class StockOrderService extends CoreService<StockOrder> {
         req,
       );
 
-      toCheckPortfolio = newPortfolio;
+      updatedPortfolio = newPortfolio;
     } else if (side === StockOrderSide.SELL.toString()) {
-      const portfolio = await this.portfolioService.findOneByStockCode(
+      prevPortfolio = await this.portfolioService.findOneByStockCode(
         stockCode,
         req,
       );
-      if (!portfolio) {
+      if (!prevPortfolio) {
         throw new BadRequestException('Stock code not found');
       }
 
-      if (portfolio.volume < volume) {
+      if (prevPortfolio.volume < volume) {
         throw new BadRequestException('Insufficient volume');
       }
 
       const updatedPortfolioDto: UpdatePortfolioDto = {
         stockCode,
-        volume: portfolio.volume - volume,
-        price: portfolio.price,
+        volume: prevPortfolio.volume - volume,
+        price: prevPortfolio.price,
       };
 
-      toCheckPortfolio = await this.portfolioService.updateByStockCode(
+      updatedPortfolio = await this.portfolioService.updateByStockCode(
         updatedPortfolioDto,
         req,
       );
     }
 
-    this.slackService.sendStockSignalMessage(order[0], toCheckPortfolio, user);
+    await this.stockOrderTransactionService.createByStockOrder(
+      createStockOrderDto,
+      prevPortfolio,
+      updatedPortfolio,
+      req,
+    );
+
+    this.slackService.sendStockSignalMessage(order[0], updatedPortfolio, user);
 
     return true;
   }
