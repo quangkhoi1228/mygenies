@@ -17,12 +17,13 @@ import {
 } from 'src/utils/financeUtils';
 import { isNotEmpty } from 'src/utils/object.util';
 import { ConvexService } from '../convex/convex.service';
+import { CreateStockOrderDto } from 'src/modules/stock-order/dto/create-stock-order.dto';
 
 @Injectable()
 export class SlackService {
   constructor(private readonly convexService: ConvexService) {}
   async sendStockSignalMessage(
-    stockOrder: StockOrder,
+    stockOrder: CreateStockOrderDto,
     portfolio: Portfolio,
     user: UserDataDto,
   ) {
@@ -30,7 +31,7 @@ export class SlackService {
       const { slackWebhookUrl, nav } = user.userInfo;
 
       console.log(stockOrder, portfolio, user);
-      const processPrice = stockOrder.price;
+      const processPrice = stockOrder.price * 1000;
 
       if (!isNotEmpty(slackWebhookUrl)) {
         console.warn('Slack webhook URL not set');

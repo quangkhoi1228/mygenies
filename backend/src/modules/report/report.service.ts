@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
-import { getPortfolioPercentage } from 'src/utils/financeUtils';
+import { formatPrice, getPortfolioPercentage } from 'src/utils/financeUtils';
 import { And, LessThanOrEqual, MoreThan } from 'typeorm';
 import { PortfolioService } from '../portfolio/portfolio.service';
 import { StockOrderSide } from '../stock-order/entities/stock-order.entity';
@@ -117,7 +117,7 @@ export class ReportService {
         (portfolio) => {
           return {
             ...portfolio,
-            price: portfolio.price / 1000,
+            price: Number(formatPrice(portfolio.price)),
             percent: getPortfolioPercentage(
               portfolio.price,
               portfolio.volume,
@@ -174,8 +174,8 @@ export class ReportService {
 
           return {
             stockCode: transaction.stockCode,
-            avgPrice: transaction.avgPrice / 1000,
-            sellPrice: transaction.orderPrice / 1000,
+            avgPrice: Number(formatPrice(transaction.avgPrice)),
+            sellPrice: Number(formatPrice(transaction.orderPrice)),
             volume: transaction.orderVolume,
             status: 'Đã bán',
             profit,
