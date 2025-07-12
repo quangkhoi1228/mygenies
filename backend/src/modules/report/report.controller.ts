@@ -1,18 +1,15 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { ReportService } from './report.service';
+import { AuthRequest } from '../auth/interface/auth-request.interface';
 
 @Controller('report')
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
-  // @Post()
-  // // @UseGuards(AdminAuthGuard)
-  // create(
-  //   @Body() createPortfolioDto: CreatePortfolioDto,
-  //   @Req() req: AuthRequest,
-  // ) {
-  //   return this.portfolioService.create(createPortfolioDto, req);
-  // }
+  @Post('send-weekly-report')
+  sendWeeklyReport(@Req() req: AuthRequest) {
+    return this.reportService.processReportPortfolioAndSellProfitCron();
+  }
 
   // @Get()
   // findAll(@Query() query: PaginationDto, @Req() req: AuthRequest) {
