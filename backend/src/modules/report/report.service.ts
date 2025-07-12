@@ -27,20 +27,16 @@ export class ReportService {
   ) {}
 
   async processReportPortfolioAndSellProfitCron() {
-    console.log(1);
     try {
-      const users = await this.userService.getRepository().find({
+      const users = await this.userService.find({
         ...this.userService.createDefaultFindOption(),
       });
 
       for (const user of users) {
         const dataDto = this.userService.convertDataToResponse(user);
-
-        console.log(dataDto.userInfo);
         if (!dataDto.userInfo.slackWebhookUrl) {
           continue;
         }
-        console.log(dataDto.userInfo.slackWebhookUrl);
         const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
 
         const reportData: SlackMessageType = {
@@ -55,7 +51,6 @@ export class ReportService {
             },
           ],
         };
-
         const reportPortfoliosImageUrl = await this.getReportPortfolio(dataDto);
         console.log(reportPortfoliosImageUrl);
         if (reportPortfoliosImageUrl) {
@@ -92,10 +87,14 @@ export class ReportService {
           });
         }
 
+        console.log(reportData.blocks);
+
         await this.slackService.sendMessage(reportData, slackWebhookUrl);
       }
+      return true;
     } catch (error) {
       console.error('Error in processMonthlyCron', error.message);
+      return false;
     }
   }
 
@@ -128,8 +127,6 @@ export class ReportService {
           };
         },
       );
-
-      console.log(reportPortfolios);
 
       const res: AxiosResponse<UploadImageReportResType> = await axios.post(
         `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
@@ -198,7 +195,6 @@ export class ReportService {
         transactions: sellProfitTransactions,
       };
 
-      console.log(reportSellProfit);
       const res: AxiosResponse<UploadImageReportResType> = await axios.post(
         `${process.env.NEST_PUBLIC_REPORT_URL}/generate-sell-profit-report`,
         reportSellProfit,
