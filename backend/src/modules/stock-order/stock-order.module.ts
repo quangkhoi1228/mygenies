@@ -6,6 +6,7 @@ import { StockOrderService } from './stock-order.service';
 import { UserModule } from '../user/user/user.module';
 import { PortfolioModule } from '../portfolio/portfolio.module';
 import { StockOrderTransactionModule } from '../stock-transaction/stock-order-transaction.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { StockOrderTransactionModule } from '../stock-transaction/stock-order-tr
     forwardRef(() => PortfolioModule),
     UserModule,
     StockOrderTransactionModule,
+    AppConfigModule,
   ],
   controllers: [StockOrderController],
   providers: [StockOrderService],

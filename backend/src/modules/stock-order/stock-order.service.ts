@@ -18,6 +18,8 @@ import { SlackService } from '../third-party/slack/slack.service';
 import { UserService } from '../user/user/user.service';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { StockOrderTransactionService } from '../stock-transaction/stock-order-transaction.service';
+import { AppConfigName } from '../app-config/dto/create-app-config.dto';
+import { AppConfigService } from '../app-config/app-config.service';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -32,6 +34,7 @@ export class StockOrderService extends CoreService<StockOrder> {
     private readonly userService: UserService,
     private readonly slackService: SlackService,
     private readonly stockOrderTransactionService: StockOrderTransactionService,
+    private readonly appConfigService: AppConfigService,
   ) {
     super(stockOrderRepository);
   }
@@ -42,7 +45,13 @@ export class StockOrderService extends CoreService<StockOrder> {
       throw new BadRequestException('Volume must be a multiple of 100');
     }
 
-    const processPrice = price * 1000;
+    const feeConfig = await this.appConfigService.findOneByName(
+      AppConfigName.FEE,
+    );
+
+    const feeRate = Number(feeConfig.value);
+
+    const processPrice = parseInt((price * 1000 * (1 + feeRate)).toString());
 
     const user = await this.userService.currentUser(req);
 
@@ -50,10 +59,7 @@ export class StockOrderService extends CoreService<StockOrder> {
       ...createStockOrderDto,
       price: processPrice,
     };
-    const order = await this.createCoreService(
-      [newStockOrder],
-      req.user.userId,
-    );
+    await this.createCoreService([newStockOrder], req.user.userId);
 
     let prevPortfolio: Portfolio = null;
     let updatedPortfolio: Portfolio = null;
@@ -120,7 +126,11 @@ export class StockOrderService extends CoreService<StockOrder> {
       req,
     );
 
-    this.slackService.sendStockSignalMessage(order[0], updatedPortfolio, user);
+    this.slackService.sendStockSignalMessage(
+      createStockOrderDto,
+      updatedPortfolio,
+      user,
+    );
 
     return true;
   }
