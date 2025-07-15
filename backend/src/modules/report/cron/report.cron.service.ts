@@ -27,7 +27,7 @@ export class ReportCronService {
     console.log('------> Cron portfolio run <------');
     const check = new Date();
     console.log('Start', `- ${check} -> ${check.getTime()}`);
-    await this.reportService.processReportPortfolioAndSellProfitCron();
+    // await this.reportService.processReportPortfolioAndSellProfitCron();
     console.log('End', `- ${new Date().getTime() - check.getTime()}`);
   }
 }
