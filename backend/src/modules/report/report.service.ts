@@ -206,4 +206,76 @@ export class ReportService {
       return null;
     }
   }
+
+  async processReportPortfolioAndStockOrderTransactionCron() {
+    try {
+      const users = await this.userService.find({
+        ...this.userService.createDefaultFindOption(),
+      });
+
+      for (const user of users) {
+        const dataDto = this.userService.convertDataToResponse(user);
+        if (!dataDto.userInfo.slackWebhookUrl) {
+          continue;
+        }
+        const slackWebhookUrl = dataDto.userInfo.slackWebhookUrl;
+
+        const reportData: SlackMessageType = {
+          text: `CẬP NHẬT DANH MỤC TUẦN`,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `Team NTH Invest gửi đến quý nhà đầu tư, danh mục đầu tư trong tuần của team để anh/chị có thể theo dõi. `,
+              },
+            },
+          ],
+        };
+        const reportPortfoliosImageUrl = await this.getReportPortfolio(dataDto);
+        console.log(reportPortfoliosImageUrl);
+        if (reportPortfoliosImageUrl) {
+          reportData.blocks.push({
+            type: 'image',
+            image_url: reportPortfoliosImageUrl,
+            alt_text: 'Danh mục đầu tư trong tuần',
+          });
+        } else {
+          reportData.blocks.push({
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: 'Hiện tại không có mã cổ phiếu nào trong danh mục',
+            },
+          });
+        }
+
+        const reportSellProfitImageUrl =
+          await this.getReportSellProfit(dataDto);
+        if (reportSellProfitImageUrl) {
+          reportData.blocks.push({
+            type: 'image',
+            image_url: reportSellProfitImageUrl,
+            alt_text: 'Báo cáo lãi/lỗ trong tuần',
+          });
+        } else {
+          reportData.blocks.push({
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: 'Hiện tại không có lệnh bán nào trong tuần',
+            },
+          });
+        }
+
+        console.log(reportData.blocks);
+
+        await this.slackService.sendMessage(reportData, slackWebhookUrl);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in processMonthlyCron', error.message);
+      return false;
+    }
+  }
 }
