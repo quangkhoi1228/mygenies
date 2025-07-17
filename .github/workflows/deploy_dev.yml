@@ -96,5 +96,20 @@ jobs:
             nvm use 21
             source .venv/bin/activate
             pip3 install -r requirements.txt
-            sh run-dev.sh
+          
     
+      - name: Start python lab 
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+
+          script: |
+            cd /home/web/mygenies/prod/lab
+            export NVM_DIR="$HOME/.nvm"
+            source ~/.nvm/nvm.sh
+            nvm use 21
+            source .venv/bin/activate
+            sh run-dev.sh
