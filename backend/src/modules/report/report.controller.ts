@@ -11,6 +11,13 @@ export class ReportController {
     return this.reportService.processReportPortfolioAndSellProfitCron();
   }
 
+  @Post('generate-portfolio-report')
+  generatePortfolioReport(@Req() req: AuthRequest) {
+    return this.reportService.generateReportPortfolioAndStockOrderTransaction(
+      req,
+    );
+  }
+
   // @Get()
   // findAll(@Query() query: PaginationDto, @Req() req: AuthRequest) {
   //   return this.portfolioService.findAll(req);

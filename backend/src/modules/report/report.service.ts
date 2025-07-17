@@ -15,6 +15,8 @@ import {
 } from './types/sell-profit-report.type';
 import { UploadImageReportResType } from './types/upload-image-report-res.type';
 import { SlackMessageType } from './types/slack-block.type';
+import { AuthRequest } from '../auth/interface/auth-request.interface';
+import { StockOrderTransaction } from '../stock-transaction/entities/stock-order-transaction.entity';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -98,7 +100,35 @@ export class ReportService {
     }
   }
 
-  async getReportPortfolio(user: UserDataDto) {
+  async generateReportPortfolioAndStockOrderTransaction(req: AuthRequest) {
+    try {
+      const user = await this.userService.findOne(req.user.userId);
+
+      const reportPortfolios = await this.getReportPortfolioData(user);
+      console.log(reportPortfolios);
+
+      const reportStockOrderTransactions =
+        await this.getReportStockOrderTransactionData(user);
+      console.log(reportStockOrderTransactions);
+
+      const data = {
+        reportPortfolios,
+        reportStockOrderTransactions,
+      };
+
+      const res: AxiosResponse<UploadImageReportResType> = await axios.post(
+        `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-and-stock-order-transaction-report`,
+        data,
+      );
+
+      return res.data;
+    } catch (error) {
+      console.error('Error in processMonthlyCron', error.message);
+      return false;
+    }
+  }
+
+  async getReportPortfolioData(user: UserDataDto) {
     try {
       const portfolios = await this.portfolioService.find({
         where: {
@@ -108,10 +138,6 @@ export class ReportService {
           stockCode: 'desc',
         },
       });
-
-      if (portfolios.length === 0) {
-        return null;
-      }
 
       const reportPortfolios: PortfolioReportType[] = portfolios.map(
         (portfolio) => {
@@ -127,6 +153,42 @@ export class ReportService {
           };
         },
       );
+
+      return reportPortfolios;
+    } catch (error) {
+      console.error('Error in report portfolio', error.message);
+      return null;
+    }
+  }
+
+  async getReportStockOrderTransactionData(user: UserDataDto) {
+    try {
+      const transactions = await this.stockOrderTransactionService.find({
+        where: {
+          createdUser: user.id,
+        },
+        order: {
+          stockCode: 'desc',
+        },
+      });
+
+      const reportStockOrderTransactions: StockOrderTransaction[] =
+        transactions.map((transaction) => {
+          return {
+            ...transaction,
+          };
+        });
+
+      return reportStockOrderTransactions;
+    } catch (error) {
+      console.error('Error in report stock order transaction', error.message);
+      return null;
+    }
+  }
+
+  async getReportPortfolio(user: UserDataDto) {
+    try {
+      const reportPortfolios = await this.getReportPortfolioData(user);
 
       const res: AxiosResponse<UploadImageReportResType> = await axios.post(
         `${process.env.NEST_PUBLIC_REPORT_URL}/generate-portfolio-report`,
