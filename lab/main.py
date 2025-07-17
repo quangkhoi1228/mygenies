@@ -1,6 +1,7 @@
 from datetime import datetime
 import io
 
+from fastapi.responses import StreamingResponse
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -39,6 +40,28 @@ class PortfolioReport(BaseModel):
     updatedAt: datetime
     updatedUser: int
 
+class TransactionReport(BaseModel):
+    createdAt: str
+    createdUser: int
+    updatedAt: str
+    updatedUser: int
+    id: int
+    stockCode: str
+    side: str
+    type: str
+    prevVolume: float
+    prevPrice: float
+    orderVolume: float
+    orderPrice: float
+    orderValue: float
+    tax: float
+    fee: float
+    avgVolume: float
+    avgPrice: float
+    
+class GenerateReportPortfolioAndStockOrderTransactionData(BaseModel):
+    reportPortfolios: List[PortfolioReport]
+    reportStockOrderTransactions: List[TransactionReport]
 
 class SellProfitReportTransactionType(BaseModel):
     stockCode: str
@@ -287,11 +310,36 @@ async def generate(data: SellProfitReportType):
     print(res)
     return Response(content=res, media_type="application/json")
 
+@app.post("/generate-portfolio-and-stock-order-transaction-report", response_class=Response, responses={200: {"content": {"application/json": {}}}})
+def generateReportPortfolioAndStockOrderTransaction(data: GenerateReportPortfolioAndStockOrderTransactionData):
+    # Convert incoming JSON to DataFrames
+    df1 = pd.json_normalize([p.model_dump() for p in data.reportPortfolios])
+    df2 = pd.json_normalize([t.model_dump() for t in data.reportStockOrderTransactions])
 
-def handle_upload_file(buffer: bytes) -> dict:
+
+    # ⚙️ Strip timezone from datetime columns
+    def drop_tz(df):
+        for col in df.select_dtypes(include=['datetimetz']).columns:
+            df[col] = df[col].dt.tz_localize(None)
+        return df
+
+    df1 = drop_tz(df1)
+    df2 = drop_tz(df2)
+    
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df1.to_excel(writer, sheet_name="Portfolios", index=False)
+        df2.to_excel(writer, sheet_name="Transactions", index=False)
+    buffer.seek(0)
+
+    res = handle_upload_file(buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return Response(content=res, media_type="application/json")
+
+
+def handle_upload_file(buffer: bytes , type: str = "image/png") -> dict:
 
     # 1. Phát hiện MIME type
-    mime = "image/png"
+    mime = type
 
     # 2. Tạo URL và thêm param author
     url = f"{CONVEX_URL}/sendFile"
