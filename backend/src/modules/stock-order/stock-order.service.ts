@@ -5,21 +5,29 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isNotEmpty } from 'class-validator';
+import {
+  formatPrice,
+  formatVolume,
+  getPercentage,
+  getPortfolioPercentage,
+} from 'src/utils/financeUtils';
 import { Repository } from 'typeorm';
 import { FindRequestDto } from '../../shared/dto/find-request.dto';
 import { CoreService } from '../../shared/modules/routes/core.service';
+import { AppConfigService } from '../app-config/app-config.service';
+import { AppConfigName } from '../app-config/dto/create-app-config.dto';
 import { AuthRequest } from '../auth/interface/auth-request.interface';
+import { UpdatePortfolioDto } from '../portfolio/dto/update-portfolio.dto';
+import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { PortfolioService } from '../portfolio/portfolio.service';
+import { StockOrderTransactionService } from '../stock-transaction/stock-order-transaction.service';
+import { SlackService } from '../third-party/slack/slack.service';
+import { UserDataDto } from '../user/user/dto/create-user.dto';
+import { UserService } from '../user/user/user.service';
 import { CreateStockOrderDto } from './dto/create-stock-order.dto';
 import { UpdateStockOrderDto } from './dto/update-stock-order.dto';
 import { StockOrder, StockOrderSide } from './entities/stock-order.entity';
-import { UpdatePortfolioDto } from '../portfolio/dto/update-portfolio.dto';
-import { SlackService } from '../third-party/slack/slack.service';
-import { UserService } from '../user/user/user.service';
-import { Portfolio } from '../portfolio/entities/portfolio.entity';
-import { StockOrderTransactionService } from '../stock-transaction/stock-order-transaction.service';
-import { AppConfigName } from '../app-config/dto/create-app-config.dto';
-import { AppConfigService } from '../app-config/app-config.service';
 
 @Injectable()
 // @UseGuards(AdminAuthGuard)
@@ -126,7 +134,7 @@ export class StockOrderService extends CoreService<StockOrder> {
       req,
     );
 
-    this.slackService.sendStockSignalMessage(
+    await this.sendStockSignalMessage(
       createStockOrderDto,
       updatedPortfolio,
       user,
@@ -214,6 +222,77 @@ export class StockOrderService extends CoreService<StockOrder> {
     } catch (error) {
       console.error('Proxy error:', error);
       return { error: 'Failed to fetch data' + error.message };
+    }
+  }
+
+  async sendStockSignalMessage(
+    stockOrder: CreateStockOrderDto,
+    portfolio: Portfolio,
+    user: UserDataDto,
+  ) {
+    try {
+      const { slackWebhookUrl, nav } = user.userInfo;
+
+      console.log(stockOrder, portfolio, user);
+      const processPrice = stockOrder.price * 1000;
+
+      if (!isNotEmpty(slackWebhookUrl)) {
+        console.warn('Slack webhook URL not set');
+        return;
+      }
+
+      const navPercent = getPortfolioPercentage(
+        processPrice,
+        stockOrder.volume,
+        nav,
+      );
+      const sideVi = stockOrder.side === StockOrderSide.BUY ? 'MUA' : 'BÁN';
+      const note =
+        stockOrder.side === StockOrderSide.BUY
+          ? portfolio.volume === stockOrder.volume
+            ? 'Mới'
+            : 'Thêm'
+          : portfolio.volume === 0
+            ? 'Hết'
+            : 'Giảm';
+
+      const portfolios = await this.portfolioService.find({
+        where: {
+          createdUser: user.id,
+        },
+      });
+
+      const portfolioValue = portfolios.reduce((pre, current) => {
+        return pre + current.price * current.volume;
+      }, 0);
+
+      const portfolioValuePercent = getPercentage(portfolioValue, nav);
+
+      const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${formatVolume(stockOrder.volume)} - Giá: ${formatPrice(processPrice)} - %NAV: ${navPercent} - ${note} - %CP/NAV: ${portfolioValuePercent}`;
+      const detail =
+        `_*${sideVi}:*_ ${stockOrder.stockCode}\n` +
+        `*KL:* ${formatVolume(stockOrder.volume)} — *Giá:* ${formatPrice(
+          processPrice,
+        )}\n` +
+        `*%NAV:* ${navPercent} - _${note}_ \n` +
+        `*%CP/NAV:* ${portfolioValuePercent}`;
+
+      const data = {
+        text: previewText,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: detail,
+            },
+          },
+        ],
+      };
+
+      return await this.slackService.sendMessage(data, slackWebhookUrl);
+    } catch (error) {
+      console.error(error);
     }
   }
 }

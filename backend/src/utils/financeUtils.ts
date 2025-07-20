@@ -8,10 +8,14 @@ export const formatVolume = (number: number) => {
   return formatNumber(number);
 };
 
+export function getPercentage(value: number, total: number) {
+  return formatNumber((value / total) * 100) + '%';
+}
+
 export function getPortfolioPercentage(
   price: number,
   volume: number,
   nav: number,
 ) {
-  return formatNumber(((price * volume) / nav) * 100) + '%';
+  return getPercentage(price * volume, nav);
 }
