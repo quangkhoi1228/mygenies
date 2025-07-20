@@ -1,84 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { Portfolio } from 'src/modules/portfolio/entities/portfolio.entity';
-import {
-  StockOrder,
-  StockOrderSide,
-} from 'src/modules/stock-order/entities/stock-order.entity';
+import { StockOrder } from 'src/modules/stock-order/entities/stock-order.entity';
 import {
   SlackWebhookUrlType,
   UserDataDto,
 } from 'src/modules/user/user/dto/create-user.dto';
 import { formatDateToDDMMYYYY } from 'src/utils/date.util';
-import {
-  formatPrice,
-  formatVolume,
-  getPortfolioPercentage,
-} from 'src/utils/financeUtils';
-import { isNotEmpty } from 'src/utils/object.util';
-import { ConvexService } from '../convex/convex.service';
-import { CreateStockOrderDto } from 'src/modules/stock-order/dto/create-stock-order.dto';
+import { formatPrice, formatVolume } from 'src/utils/financeUtils';
 
 @Injectable()
 export class SlackService {
-  constructor(private readonly convexService: ConvexService) {}
-  async sendStockSignalMessage(
-    stockOrder: CreateStockOrderDto,
-    portfolio: Portfolio,
-    user: UserDataDto,
-  ) {
-    try {
-      const { slackWebhookUrl, nav } = user.userInfo;
-
-      console.log(stockOrder, portfolio, user);
-      const processPrice = stockOrder.price * 1000;
-
-      if (!isNotEmpty(slackWebhookUrl)) {
-        console.warn('Slack webhook URL not set');
-        return;
-      }
-
-      const navPercent = getPortfolioPercentage(
-        processPrice,
-        stockOrder.volume,
-        nav,
-      );
-      const sideVi = stockOrder.side === StockOrderSide.BUY ? 'MUA' : 'BÁN';
-      const note =
-        stockOrder.side === StockOrderSide.BUY
-          ? portfolio.volume === stockOrder.volume
-            ? 'Mới'
-            : 'Thêm'
-          : portfolio.volume === 0
-            ? 'Hết'
-            : 'Giảm';
-
-      const previewText = `${sideVi}: ${stockOrder.stockCode} - KL: ${formatVolume(stockOrder.volume)} - Giá: ${formatPrice(processPrice)} - %NAV: ${navPercent} - ${note}`;
-      const detail =
-        `_*${sideVi}:*_ ${stockOrder.stockCode}\n` +
-        `*KL:* ${formatVolume(stockOrder.volume)} — *Giá:* ${formatPrice(
-          processPrice,
-        )}\n` +
-        `*%NAV:* ${navPercent} - _${note}_`;
-
-      const data = {
-        text: previewText,
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: detail,
-            },
-          },
-        ],
-      };
-
-      return await this.sendMessage(data, slackWebhookUrl);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  constructor() {}
 
   // async sendPortfolioSignalMessage(portfolios: Portfolio[], user: UserDataDto) {
   //   try {
