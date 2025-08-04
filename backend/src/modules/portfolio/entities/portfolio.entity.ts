@@ -23,6 +23,22 @@ export class Portfolio {
   volume: number;
 
   @ApiProperty()
+  @Column({ nullable: true, default: 0 })
+  t0Volume: number;
+
+  @ApiProperty()
+  @Column({ nullable: true, default: 0 })
+  t1Volume: number;
+
+  @ApiProperty()
+  @Column({ nullable: true, default: 0 })
+  t2Volume: number;
+
+  @ApiProperty()
+  @Column({ nullable: true, default: 0 })
+  t3Volume: number;
+
+  @ApiProperty()
   @Column()
   price: number;
 

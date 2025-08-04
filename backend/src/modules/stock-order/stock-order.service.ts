@@ -84,6 +84,10 @@ export class StockOrderService extends CoreService<StockOrder> {
           stockCode,
           volume,
           price: processPrice,
+          t0Volume: volume,
+          t1Volume: 0,
+          t2Volume: 0,
+          t3Volume: 0,
         };
       } else {
         updatedPortfolioDto = {
@@ -94,6 +98,10 @@ export class StockOrderService extends CoreService<StockOrder> {
               processPrice * volume) /
               (prevPortfolio.volume + volume),
           ),
+          t0Volume: (prevPortfolio.t0Volume ?? 0) + volume,
+          t1Volume: prevPortfolio.t1Volume ?? 0,
+          t2Volume: prevPortfolio.t2Volume ?? 0,
+          t3Volume: prevPortfolio.t3Volume ?? 0,
         };
       }
       const newPortfolio = await this.portfolioService.updateByStockCode(
@@ -114,11 +122,40 @@ export class StockOrderService extends CoreService<StockOrder> {
       if (prevPortfolio.volume < volume) {
         throw new BadRequestException('Insufficient volume');
       }
+      let remain = volume;
+      let newT3Volume = 0;
+      let newT2Volume = prevPortfolio.t2Volume;
+      let newT1Volume = prevPortfolio.t1Volume;
+      let newT0Volume = prevPortfolio.t0Volume;
+
+      if (prevPortfolio.t3Volume >= remain) {
+        newT3Volume = prevPortfolio.t3Volume - remain;
+      } else {
+        newT3Volume = 0;
+        remain = remain - prevPortfolio.t3Volume;
+        if (prevPortfolio.t2Volume >= remain) {
+          newT2Volume = prevPortfolio.t2Volume - remain;
+        } else {
+          newT2Volume = 0;
+          remain = remain - prevPortfolio.t2Volume;
+          if (prevPortfolio.t1Volume >= remain) {
+            newT1Volume = prevPortfolio.t1Volume - remain;
+          } else {
+            newT1Volume = 0;
+            remain = remain - prevPortfolio.t1Volume;
+            newT0Volume = prevPortfolio.t0Volume - remain;
+          }
+        }
+      }
 
       const updatedPortfolioDto: UpdatePortfolioDto = {
         stockCode,
         volume: prevPortfolio.volume - volume,
         price: prevPortfolio.price,
+        t3Volume: newT3Volume,
+        t2Volume: newT2Volume,
+        t1Volume: newT1Volume,
+        t0Volume: newT0Volume,
       };
 
       updatedPortfolio = await this.portfolioService.updateByStockCode(
