@@ -5,6 +5,7 @@ import { PortfolioController } from './portfolio.controller';
 import { PortfolioService } from './portfolio.service';
 import { UserModule } from '../user/user/user.module';
 import { StockOrderModule } from '../stock-order/stock-order.module';
+import { UpdateTransactionPortfolioCronService } from './cron/update-transaction-portfolio.cron.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { StockOrderModule } from '../stock-order/stock-order.module';
     UserModule,
   ],
   controllers: [PortfolioController],
-  providers: [PortfolioService],
-  exports: [PortfolioService],
+  providers: [PortfolioService, UpdateTransactionPortfolioCronService],
+  exports: [PortfolioService, UpdateTransactionPortfolioCronService],
 })
 export class PortfolioModule {}

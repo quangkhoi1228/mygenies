@@ -64,6 +64,8 @@ export class PortfolioService extends CoreService<Portfolio> {
       },
     });
 
+    console.log(data);
+
     return data;
   }
 
@@ -184,4 +186,26 @@ export class PortfolioService extends CoreService<Portfolio> {
   //     console.error('Error in processMonthlyCron', error);
   //   }
   // }
+
+  async updateTransactionPortfolio() {
+    const portfolios = await this.portfolioRepository.find();
+
+    console.log(portfolios);
+
+    for (const portfolio of portfolios) {
+      const updatedPortfolio: Portfolio = {
+        ...portfolio,
+        t0Volume: 0,
+        t1Volume: portfolio.t0Volume,
+        t2Volume: portfolio.t1Volume,
+        t3Volume: portfolio.t3Volume + portfolio.t2Volume,
+      };
+
+      await this.updateCoreService(
+        { id: portfolio.id },
+        updatedPortfolio,
+        portfolio.createdUser,
+      );
+    }
+  }
 }
