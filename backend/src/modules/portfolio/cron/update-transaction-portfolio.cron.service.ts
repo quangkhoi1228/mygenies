@@ -14,7 +14,7 @@ export class UpdateTransactionPortfolioCronService {
     // this.weeklyCron();
   }
 
-  @Cron('30 11 * * 1-5', {
+  @Cron('0 0 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   // @Cron('* * * * *')
