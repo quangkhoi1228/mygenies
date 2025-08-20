@@ -64,13 +64,19 @@ export class PortfolioService extends CoreService<Portfolio> {
       },
     });
 
+    const dataWithProfit = await this.updateProfitData(data.data);
+    data.data = dataWithProfit;
+
     console.log(data);
 
     return data;
   }
 
   async findOne(id: number) {
-    return await this.portfolioRepository.findOneBy({ id });
+    const data = await this.portfolioRepository.findOneBy({ id });
+    const dataWithProfit = await this.updateProfitData([data]);
+
+    return dataWithProfit;
   }
 
   async findOneByStockCode(stockCode: string, req: AuthRequest) {
@@ -192,20 +198,80 @@ export class PortfolioService extends CoreService<Portfolio> {
 
     console.log(portfolios);
 
-    for (const portfolio of portfolios) {
-      const updatedPortfolio: Portfolio = {
-        ...portfolio,
-        t0Volume: 0,
-        t1Volume: portfolio.t0Volume,
-        t2Volume: portfolio.t1Volume,
-        t3Volume: portfolio.t3Volume + portfolio.t2Volume,
-      };
+    // for (const portfolio of portfolios) {
+    //   const updatedPortfolio: Portfolio = {
+    //     ...portfolio,
+    //     t0Volume: 0,
+    //     t1Volume: portfolio.t0Volume,
+    //     t2Volume: portfolio.t1Volume,
+    //     t3Volume: portfolio.t3Volume + portfolio.t2Volume,
+    //   };
 
-      await this.updateCoreService(
-        { id: portfolio.id },
-        updatedPortfolio,
-        portfolio.createdUser,
-      );
+    //   await this.updateCoreService(
+    //     { id: portfolio.id },
+    //     updatedPortfolio,
+    //     portfolio.createdUser,
+    //   );
+    // }
+  }
+
+  async searchPriceByStockCode(query: string) {
+    const url = `https://iboard-query.ssi.com.vn/stock/${query}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json, text/plain, */*',
+          origin: 'https://iboard.ssi.com.vn',
+          referer: 'https://iboard.ssi.com.vn/',
+          'user-agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        },
+      });
+
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error('Proxy error:', error);
+      return { error: 'Failed to fetch data' + error.message };
     }
+  }
+
+  async updateProfitData(portfolios: Portfolio[]) {
+    const data = await Promise.allSettled(
+      portfolios.map((item) => this.searchPriceByStockCode(item.stockCode)),
+    );
+
+    const dataOpenPrice = data
+      .filter((item) => item.status === 'fulfilled')
+      .reduce((a, v) => {
+        if (v.value.data?.stockSymbol && v.value.data?.openPrice) {
+          a[v.value.data.stockSymbol] = v.value.data.openPrice;
+        }
+
+        return a;
+      }, {});
+
+    const result = portfolios.map((item) => {
+      const basePrice = item.price * item.volume;
+      const currentPrice =
+        (dataOpenPrice[item.stockCode] ?? item.price) * item.volume;
+
+      const profit = currentPrice - basePrice;
+      const profitPercent = +(
+        ((currentPrice - basePrice) / basePrice) *
+        100
+      ).toFixed(2);
+
+      return {
+        ...item,
+        profit,
+        profitPercent,
+      };
+    });
+
+    return result;
   }
 }
