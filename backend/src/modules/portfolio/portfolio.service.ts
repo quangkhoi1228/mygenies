@@ -198,21 +198,21 @@ export class PortfolioService extends CoreService<Portfolio> {
 
     console.log(portfolios);
 
-    // for (const portfolio of portfolios) {
-    //   const updatedPortfolio: Portfolio = {
-    //     ...portfolio,
-    //     t0Volume: 0,
-    //     t1Volume: portfolio.t0Volume,
-    //     t2Volume: portfolio.t1Volume,
-    //     t3Volume: portfolio.t3Volume + portfolio.t2Volume,
-    //   };
+    for (const portfolio of portfolios) {
+      const updatedPortfolio: Portfolio = {
+        ...portfolio,
+        t0Volume: 0,
+        t1Volume: portfolio.t0Volume,
+        t2Volume: portfolio.t1Volume,
+        t3Volume: portfolio.t3Volume + portfolio.t2Volume,
+      };
 
-    //   await this.updateCoreService(
-    //     { id: portfolio.id },
-    //     updatedPortfolio,
-    //     portfolio.createdUser,
-    //   );
-    // }
+      await this.updateCoreService(
+        { id: portfolio.id },
+        updatedPortfolio,
+        portfolio.createdUser,
+      );
+    }
   }
 
   async searchPriceByStockCode(query: string) {
