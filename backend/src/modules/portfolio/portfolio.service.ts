@@ -244,11 +244,11 @@ export class PortfolioService extends CoreService<Portfolio> {
       portfolios.map((item) => this.searchPriceByStockCode(item.stockCode)),
     );
 
-    const dataOpenPrice = data
+    const dataMatchedPrice = data
       .filter((item) => item.status === 'fulfilled')
       .reduce((a, v) => {
-        if (v.value.data?.stockSymbol && v.value.data?.openPrice) {
-          a[v.value.data.stockSymbol] = v.value.data.openPrice;
+        if (v.value.data?.stockSymbol && v.value.data?.matchedPrice) {
+          a[v.value.data.stockSymbol] = v.value.data.matchedPrice;
         }
 
         return a;
@@ -257,7 +257,7 @@ export class PortfolioService extends CoreService<Portfolio> {
     const result = portfolios.map((item) => {
       const basePrice = item.price * item.volume;
       const currentPrice =
-        (dataOpenPrice[item.stockCode] ?? item.price) * item.volume;
+        (dataMatchedPrice[item.stockCode] ?? item.price) * item.volume;
 
       const profit = currentPrice - basePrice;
       const profitPercent = +(
